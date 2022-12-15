@@ -26,6 +26,8 @@ package org.eurocarbdb.application.glycanbuilder.renderutil;
 import java.util.*;
 import java.awt.Rectangle;
 
+import org.w3c.dom.Element;
+
 import org.eurocarbdb.application.glycanbuilder.util.GraphicOptions;
 import org.glycoinfo.application.glycanbuilder.util.GlycanUtils;
 import org.eurocarbdb.application.glycanbuilder.DefaultPaintable;
@@ -36,6 +38,9 @@ import org.eurocarbdb.application.glycanbuilder.linkage.Linkage;
 class SVGGlycanRenderer extends GlycanRendererAWT {
 
     Glycan theStructure=null;
+    Integer lastResidueIndex=0;
+    HashMap<Object,Integer> residueIndex = new HashMap<Object,Integer>();
+    HashMap<Object,Integer> residueQuantity = new HashMap<Object,Integer>();
 
     public SVGGlycanRenderer(GlycanRendererAWT src) {
         theResidueRenderer = src.theResidueRenderer;
@@ -44,6 +49,14 @@ class SVGGlycanRenderer extends GlycanRendererAWT {
         theResidueStyleDictionary = src.theResidueStyleDictionary;
         theLinkageStyleDictionary = src.theLinkageStyleDictionary;
         theGraphicOptions = src.theGraphicOptions;
+    }
+
+    public int getNodeID(Object node) {
+        if( node==null ) return -1;
+        if( residueIndex.containsKey(node) ) return residueIndex.get(node);
+        lastResidueIndex += 1;
+        residueIndex.put(node,lastResidueIndex);
+        return lastResidueIndex;
     }
 
     public void paint(GroupingSVGGraphics2D g2d, Glycan structure, HashSet<Residue> selected_residues, HashSet<Linkage> selected_linkages, boolean show_mass, boolean show_redend, PositionManager posManager, BBoxManager bboxManager) {
@@ -103,7 +116,14 @@ class SVGGlycanRenderer extends GlycanRendererAWT {
 			Rectangle child_border_bbox = bboxManager.getBorder(child);
 
 			if (child_bbox != null && !posManager.isOnBorder(child)) {
-				g2d.addGroup("l",theStructure,node,child);
+			        Element g = g2d.addGroup("l",theStructure,node,child);
+				if (node.isSaccharide()) {
+				    g.setAttribute("data:type","Linkage");
+				    g.setAttribute("data:parentResidueIndex",Integer.toString(getNodeID(node)));
+				    g.setAttribute("data:parentPositions",link.getParentPositionsString());
+				    g.setAttribute("data:childResidueIndex",Integer.toString(getNodeID(child)));
+				    g.setAttribute("data:childPositions",link.getChildPositionsString());
+				}
 				boolean selected = (selected_residues.contains(node) && selected_residues.contains(child)) || selected_linkages.contains(link);
 				boolean active = (active_residues == null || (active_residues.contains(node) && active_residues.contains(child)));
 				theLinkageRenderer.paintEdge(new DefaultPaintable(g2d),link,selected,node_bbox,border_bbox,child_bbox,child_border_bbox);                
@@ -111,7 +131,16 @@ class SVGGlycanRenderer extends GlycanRendererAWT {
 		}
 
 		// paint node
-		g2d.addGroup("r",theStructure,node);
+		Element g = g2d.addGroup("r",theStructure,node);
+		if (node.isSaccharide()) {
+		    g.setAttribute("data:type","Residue");    
+		    g.setAttribute("data:residueIndex",Integer.toString(getNodeID(node)));
+		    g.setAttribute("data:residueName",node.getResidueName());
+		    g.setAttribute("data:residueAnomericState",""+node.getAnomericState());
+                    if (residueQuantity.containsKey(node)) {
+                      g.setAttribute("data:residueMultiplicity",Integer.toString(residueQuantity.get(node)));
+                    }
+		}
 		boolean selected = selected_residues.contains(node);
 		boolean active = (active_residues == null || active_residues.contains(node));
 		theResidueRenderer.paint(new DefaultPaintable(g2d), node, selected, active, posManager.isOnBorder(node), parent_bbox, node_bbox,
@@ -183,7 +212,8 @@ class SVGGlycanRenderer extends GlycanRendererAWT {
 				}
 
 				// paint child
-				paintResidue(new DefaultPaintable(g2d), child, selected_residues, selected_linkages, active_residues, posManager,bboxManager);    
+                                residueQuantity.put(child,quantity);
+				paintResidue(g2d, child, selected_residues, selected_linkages, active_residues, posManager,bboxManager);    
 
 				// paint info
 				if (!posManager.isOnBorder(child)) {

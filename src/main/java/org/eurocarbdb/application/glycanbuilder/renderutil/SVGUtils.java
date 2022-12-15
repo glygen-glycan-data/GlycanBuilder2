@@ -130,7 +130,7 @@ public class SVGUtils   {
             // Create an instance of the SVG Generator
             DOMImplementation domImpl = org.apache.batik.dom.GenericDOMImplementation.getDOMImplementation();
             Document document = domImpl.createDocument(null, "svg", null);
-            GroupingSVGGraphics2D g2d = new GroupingSVGGraphics2D(document, true);
+            GroupingSVGGraphics2D g2d = new GroupingSVGGraphics2D(document, false);
 
             // Render into the SVG Graphics2D
             SVGGlycanRenderer sgr = new SVGGlycanRenderer(gr);
@@ -159,7 +159,7 @@ public class SVGUtils   {
             g2d.stream(root, out, true, false);
 
             //return out.toString();
-            return out.toString().replaceAll("shape-rendering:crispEdges;\\s?", "");
+            return out.toString().replaceAll("shape-rendering:crispEdges;\\s?", "").replaceAll("font-family:&apos;Serif&apos;;","font-family:&apos;SansSerif&apos;;");
         } catch (Exception e) {
             LogUtils.report(e);
             return null;

@@ -52,9 +52,10 @@ class GroupingSVGGraphics2D extends SVGGraphics2D {
 			tm = domTreeManager;
 		}
 
-		public void addGroup(String id) {
+		public Element addGroup(String id) {
 			currentGroup = tm.getDOMFactory().createElementNS(SVG_NAMESPACE_URI, SVG_G_TAG);
 			currentGroup.setAttribute("ID",id);
+			return currentGroup;
 		}
 
 	}
@@ -71,19 +72,19 @@ class GroupingSVGGraphics2D extends SVGGraphics2D {
 		setDOMGroupManager(gm = new MyDOMGroupManager(gc,tm));
 	}
 
-	public void addGroup(String id_class, Object parent, Object rep) {
+	public Element addGroup(String id_class, Object parent, Object rep) {
 		int id_p = getID(parent);
 		int id_r = getID(rep);
 
-		gm.addGroup(id_class + "-" + id_p + ":" + id_r);
+		return gm.addGroup(id_class + "-" + id_p + ":" + id_r);
 	}
 
-	public void addGroup(String id_class, Object parent, Object rep1, Object rep2) {
+	public Element addGroup(String id_class, Object parent, Object rep1, Object rep2) {
 		int id_p = getID(parent);
 		int id_r1 = getID(rep1);
 		int id_r2 = getID(rep2);
 
-		gm.addGroup(id_class + "-" + id_p + ":" + id_r1 + "," + id_r2);
+		return gm.addGroup(id_class + "-" + id_p + ":" + id_r1 + "," + id_r2);
 	}
 
 	private int getID(Object o) {
