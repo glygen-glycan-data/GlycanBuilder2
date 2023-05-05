@@ -1,5 +1,19 @@
 ## Change log
 
+### 1.22.0 (20230113)
+* Update lib: glycanformatconverter 2.8.2
+
+### 1.21.0 (20230113)
+* Fixed URL (https:/nexus.glycoinfo.org/content/groups/public).
+* Update lib: glycanformatconverter 2.8.0
+* Update lib: wurcsframework 1.2.9
+
+### 1.20.1 (20221228)
+* Changed the dependency of logger from log4j to log4j-over-slf4j.
+
+### 1.20.0 (20221118)
+* Fix a stack overflow error when drawing glycan had repeat units.
+
 ### 1.19.0 (20220829)
 * Blue RGB value of the SNFG was changed `0,144,188` to `0,114,188`.
 * A clearance of bracket for glycan fragments was modified. 
