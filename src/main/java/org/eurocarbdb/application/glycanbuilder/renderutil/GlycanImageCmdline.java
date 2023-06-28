@@ -170,6 +170,8 @@ public class GlycanImageCmdline
 		boolean force=false;
 		String outDir = "";
 		String outFile = "";
+                String idprefix = "";
+                boolean idprefix_from_filename = false;
 
 		for (int i=0; i<args.length; i+=1) {
 
@@ -203,8 +205,18 @@ public class GlycanImageCmdline
 				i += 1;
 				continue;
 			}
+			if (args[i].equals("idprefix") && args.length > (i+1)) {
+				idprefix = args[i+1];
+				i += 1;
+				continue;
+			}
 			if (args[i].equals("opaque") && args.length > (i+1)) {
 				opaque = Boolean.parseBoolean(args[i+1]);
+				i += 1;
+				continue;
+			}
+			if (args[i].equals("idprefix_from_filename") && args.length > (i+1)) {
+				idprefix_from_filename = Boolean.parseBoolean(args[i+1]);
 				i += 1;
 				continue;
 			}
@@ -225,6 +237,10 @@ public class GlycanImageCmdline
 			}
 
 			String glycanstr = readFileAsString(args[i]);
+                        if (idprefix_from_filename) {
+                            idprefix = removeExtn(args[i]);
+                        }
+                        
 			if (outFile.equals("")) {
 			    if (outDir.equals("")) {
 				outFile = changeExtn(args[i],imagefmt);
@@ -265,6 +281,13 @@ public class GlycanImageCmdline
 			    else if (imagefmt.equalsIgnoreCase("svg")) {
 
                     String t_svg = SVGUtils.getVectorGraphics(t_grawt, new Union<Glycan>(glycan), mass_opts, reducing_end);
+                    t_svg = t_svg.replaceAll(" ID=\"r-1:"," ID=\""+idprefix+":r-1:");
+                    t_svg = t_svg.replaceAll(" ID=\"l-1:"," ID=\""+idprefix+":l-1:");
+                    t_svg = t_svg.replaceAll(" ID=\"li-1:"," ID=\""+idprefix+":li-1:");
+                    t_svg = t_svg.replaceAll(" ID=\"b-1:"," ID=\""+idprefix+":b-1:");
+                    t_svg = t_svg.replaceAll(" ID=\"legend-1:"," ID=\""+idprefix+":legend-1:");
+                    t_svg = t_svg.replaceAll(" id=\"clipPath"," id=\""+idprefix+":clipPath");
+                    t_svg = t_svg.replaceAll("clip-path:url\\(#clipPath","clip-path:url(#"+idprefix+":clipPath");
 
                     FileWriter outputfilewriter = new FileWriter(outFile);
                     outputfilewriter.write(t_svg);
