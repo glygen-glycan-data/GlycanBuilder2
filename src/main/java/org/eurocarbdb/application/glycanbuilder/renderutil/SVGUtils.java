@@ -159,7 +159,7 @@ public class SVGUtils   {
             g2d.stream(root, out, true, false);
 
             //return out.toString();
-            return out.toString().replaceAll("shape-rendering:crispEdges;\\s?", "").replaceAll("font-family:&apos;Serif&apos;;","font-family:&apos;SansSerif&apos;;");
+            return out.toString().replaceAll("shape-rendering:crispEdges;\\s?", "");
         } catch (Exception e) {
             LogUtils.report(e);
             return null;

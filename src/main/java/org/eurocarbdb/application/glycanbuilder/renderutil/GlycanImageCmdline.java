@@ -3,6 +3,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.FileInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.OutputStream;
 import java.io.FileOutputStream;
 import java.io.BufferedInputStream;
@@ -14,6 +15,8 @@ import java.lang.IllegalArgumentException;
 import java.lang.StringIndexOutOfBoundsException;
 import java.lang.NullPointerException;
 import java.lang.StackOverflowError;
+import java.lang.StringBuilder;
+import java.util.*;
 
 import org.glycoinfo.application.glycanbuilder.converterWURCS2.WURCS2Parser;
 import org.glycoinfo.GlycanFormatconverter.Glycan.GlycanException;
@@ -32,6 +35,17 @@ import org.eurocarbdb.application.glycanbuilder.BuilderWorkspace;
 import org.eurocarbdb.resourcesdb.monosaccharide.MonosaccharideException;
 import org.eurocarbdb.MolecularFramework.util.visitor.GlycoVisitorException;
 
+import java.security.MessageDigest;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.transform.*; 
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.Node;
+import org.w3c.dom.Element;
 
 public class GlycanImageCmdline
 {
@@ -146,6 +160,45 @@ public class GlycanImageCmdline
 		} else {
 			throw new IllegalArgumentException("Bad notation option");
 		}
+	}
+
+        // from: http://www.java2s.com/example/java-utility-method/xml-nodelist/iterable-nodelist-nodelist-f1617.html
+        public static Iterable<Element> iterable(NodeList nodeList) {
+	    return () -> new Iterator<Element>() {
+		private int index = 0;
+		
+		@Override
+		    public boolean hasNext() {
+		    return index < nodeList.getLength();
+		}
+		
+		@Override
+		    public Element next() {
+		    return ((Element)nodeList.item(index++));
+		}
+	    };
+	}
+
+        public static void changestyle(Element elt, String key, String value) {
+	    ArrayList<String> newstyles = new ArrayList<String>();
+	    for (String style : elt.getAttribute("style").split(";\\s*")) {
+		if (style.startsWith(key+":")) {
+		    style = key+":"+value;
+		}
+		newstyles.add(style);
+	    }
+	    elt.setAttribute("style",String.join("; ",newstyles)+";");
+	}
+
+        public static String md5hash(String data) throws java.security.NoSuchAlgorithmException {
+	    MessageDigest md = MessageDigest.getInstance("MD5");
+	    md.update(data.getBytes());
+            byte[] digest = md.digest();      
+	    StringBuffer hexString = new StringBuffer();
+            for (int i = 0;i<digest.length;i++) {
+		hexString.append(Integer.toHexString(0xFF & digest[i]));
+	    }
+	    return hexString.toString(); 
 	}
 
 	public static void main(String[] args) throws Exception
@@ -276,24 +329,84 @@ public class GlycanImageCmdline
 			    if (imagefmt.equalsIgnoreCase("png") || imagefmt.equalsIgnoreCase("jpg") || imagefmt.equalsIgnoreCase("jpeg")) {
 			        BufferedImage img = t_gwb.getGlycanRenderer().getImage(glycan, opaque, mass_opts, reducing_end, scale);
                                 ImageIO.write(img, imagefmt, outputfile);
-				System.out.println(args[i]);
+				System.out.println(args[i]+" -> "+outputfile);
 			    }
 			    else if (imagefmt.equalsIgnoreCase("svg")) {
 
                     String t_svg = SVGUtils.getVectorGraphics(t_grawt, new Union<Glycan>(glycan), mass_opts, reducing_end);
-                    t_svg = t_svg.replaceAll(" ID=\"r-1:"," ID=\""+idprefix+":r-1:");
-                    t_svg = t_svg.replaceAll(" ID=\"l-1:"," ID=\""+idprefix+":l-1:");
-                    t_svg = t_svg.replaceAll(" ID=\"li-1:"," ID=\""+idprefix+":li-1:");
-                    t_svg = t_svg.replaceAll(" ID=\"b-1:"," ID=\""+idprefix+":b-1:");
-                    t_svg = t_svg.replaceAll(" ID=\"legend-1:"," ID=\""+idprefix+":legend-1:");
-                    t_svg = t_svg.replaceAll(" id=\"clipPath"," id=\""+idprefix+":clipPath");
-                    t_svg = t_svg.replaceAll("clip-path:url\\(#clipPath","clip-path:url(#"+idprefix+":clipPath");
+                    DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+                    DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+                    StringBuilder xmlStringBuilder = new StringBuilder(t_svg);
+                    ByteArrayInputStream input = new ByteArrayInputStream(xmlStringBuilder.toString().getBytes("UTF-8"));
+                    Document doc = dBuilder.parse(input);
+                    // doc.getDocumentElement().normalize();
 
-                    FileWriter outputfilewriter = new FileWriter(outFile);
-                    outputfilewriter.write(t_svg);
-                    outputfilewriter.close();
-				System.out.println(args[i]);
+		    Map<String, String> cpmap = new HashMap<String, String>();
+
+                    Element root = doc.getDocumentElement();
+		    changestyle(root, "font-size", "11pt");
+		    changestyle(root, "font-family", "ariel, sans-serif");
+		    for (Element gr : iterable(root.getElementsByTagName("g"))) {
+			for (Element def : iterable(gr.getElementsByTagName("defs"))) {
+			    for (Element cp : iterable(def.getElementsByTagName("clipPath"))) {
+				String cpid = cp.getAttribute("id");
+				String newcpid = null;
+				if (idprefix.equals("")) {
+				    String path = ((Element)cp.getFirstChild()).getAttribute("d");
+				    newcpid = cpid+":"+md5hash(path);
+				} else {
+				    newcpid = idprefix+":"+cpid;
+				}
+				cp.setAttribute("id",newcpid);
+				cpmap.put(cpid,newcpid);
 			    }
+			}
+			for (Element gr1 : iterable(gr.getElementsByTagName("g"))) {
+			    if (gr1.getAttribute("data.type").equals("Monosaccharide")) {
+				for (Element shape : iterable(gr1.getChildNodes())) {
+				    if (shape.hasAttribute("style")) {
+					ArrayList<String> newstyles = new ArrayList<String>();
+					for (String style : shape.getAttribute("style").split(";\\s*")) {
+					    if (style.startsWith("clip-path:url(")) {
+						String[] data = style.split("[:(#)]");
+						String cpid = data[3];
+						style = "clip-path:url(#" + cpmap.get(cpid) + ")";
+					    }
+					    newstyles.add(style);
+					}
+					shape.setAttribute("style",String.join("; ",newstyles)+";");
+				    }
+				}
+			    }			   
+			    if (!idprefix.equals("") && gr1.hasAttribute("ID")) {
+				String ID = gr1.getAttribute("ID");
+				ID = idprefix+":"+ID;
+				gr1.setAttribute("ID",ID);
+			    }
+			    changestyle(gr1,"font-family","ariel, sans-serif");
+			    if (gr1.getAttribute("data.type").equals("Substituent")) {
+				changestyle(gr1,"font-size","11pt");
+			    }
+			}
+		    }
+
+		    TransformerFactory transformerFactory = TransformerFactory.newInstance();
+		    Transformer transformer = transformerFactory.newTransformer();
+		    transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+		    transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+
+		    DOMSource sourcedoc = new DOMSource(doc);
+		    
+                    FileWriter outputfilewriter = new FileWriter(outFile);
+		    StreamResult outputfilestream = new StreamResult(outputfilewriter);
+		    
+		    transformer.transform(sourcedoc, outputfilestream);
+
+                    outputfilewriter.close();
+
+		    System.out.println(args[i]+" -> "+outputfile);
+		
+	    }
 			    else {
 			        throw new IllegalArgumentException("Image format " + imagefmt + " is not supported");
 			    }

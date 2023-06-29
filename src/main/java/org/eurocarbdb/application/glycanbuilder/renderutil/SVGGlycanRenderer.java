@@ -40,7 +40,9 @@ class SVGGlycanRenderer extends GlycanRendererAWT {
     Glycan theStructure=null;
     Integer lastResidueIndex=0;
     HashMap<Object,Integer> residueIndex = new HashMap<Object,Integer>();
-    HashMap<Object,Integer> residueQuantity = new HashMap<Object,Integer>();
+    HashMap<Object,String> residueUndetQuantity = new HashMap<Object,String>();
+    HashMap<Object,String> residueUndetParentPos = new HashMap<Object,String>();
+    HashMap<Object,String> residueUndetChildPos = new HashMap<Object,String>();
     Residue root=null;
 
     public SVGGlycanRenderer(GlycanRendererAWT src) {
@@ -147,8 +149,10 @@ class SVGGlycanRenderer extends GlycanRendererAWT {
                     if (node.isAlditol()) {
 		      g.setAttribute("data.residueIsAlditol","true");
                     }
-                    if (residueQuantity.containsKey(node)) {
-                      g.setAttribute("data.residueMultiplicity",Integer.toString(residueQuantity.get(node)));
+                    if (residueUndetQuantity.containsKey(node)) {
+                      g.setAttribute("data.residueUndeterminedMultiplicity",residueUndetQuantity.get(node));
+                      g.setAttribute("data.residueUndeterminedParentPos",residueUndetParentPos.get(node));
+                      g.setAttribute("data.residueUndeterminedChildPos",residueUndetChildPos.get(node));
                     }
                     if (node.isFreeReducingEnd() || node.isReducingEnd() || node == root) {
 		      g.setAttribute("data.residueIsReducingEnd","true");    
@@ -233,7 +237,9 @@ class SVGGlycanRenderer extends GlycanRendererAWT {
 				}
 
 				// paint child
-                                residueQuantity.put(child,quantity);
+                                residueUndetQuantity.put(child,Integer.toString(quantity));
+                                residueUndetParentPos.put(child,link.getParentPositionsString());
+                                residueUndetChildPos.put(child,link.getChildPositionsString());
 				paintResidue(g2d, child, selected_residues, selected_linkages, active_residues, posManager,bboxManager);    
 
 				// paint info
