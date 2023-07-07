@@ -335,6 +335,14 @@ public class GlycanImageCmdline
 
                     String t_svg = SVGUtils.getVectorGraphics(t_grawt, new Union<Glycan>(glycan), mass_opts, reducing_end);
                     DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+
+                    dbFactory.setValidating(false);
+                    dbFactory.setNamespaceAware(true);
+                    dbFactory.setFeature("http://xml.org/sax/features/namespaces", false);
+                    dbFactory.setFeature("http://xml.org/sax/features/validation", false);
+                    dbFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-dtd-grammar", false);
+                    dbFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+
                     DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
                     StringBuilder xmlStringBuilder = new StringBuilder(t_svg);
                     ByteArrayInputStream input = new ByteArrayInputStream(xmlStringBuilder.toString().getBytes("UTF-8"));
