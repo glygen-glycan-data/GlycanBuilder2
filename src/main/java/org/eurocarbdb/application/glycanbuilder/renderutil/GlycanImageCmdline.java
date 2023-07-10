@@ -360,8 +360,14 @@ public class GlycanImageCmdline
 				String cpid = cp.getAttribute("id");
 				String newcpid = null;
 				if (idprefix.equals("")) {
-				    String path = ((Element)cp.getFirstChild()).getAttribute("d");
-				    newcpid = cpid+":"+md5hash(path);
+                                    Element pathelt = ((Element)cp.getFirstChild());
+				    String d = pathelt.getAttribute("d");
+                                    if (pathelt.hasAttribute("style")) {
+                                        String style = pathelt.getAttribute("style");
+				        newcpid = cpid+":"+md5hash(d+":"+style);
+                                    } else {
+				        newcpid = cpid+":"+md5hash(d);
+                                    }
 				} else {
 				    newcpid = idprefix+":"+cpid;
 				}
