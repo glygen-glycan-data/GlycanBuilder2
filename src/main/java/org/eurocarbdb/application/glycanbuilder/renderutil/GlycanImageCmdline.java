@@ -190,6 +190,13 @@ public class GlycanImageCmdline
 	    elt.setAttribute("style",String.join("; ",newstyles)+";");
 	}
 
+        public static void setwidthandheight(Element svgelt) {
+            String vb = svgelt.getAttribute("viewBox");
+            String[] dims = vb.split("\\s+");
+            svgelt.setAttribute("width",dims[2]);
+            svgelt.setAttribute("height",dims[3]);
+        }
+
         public static String md5hash(String data) throws java.security.NoSuchAlgorithmException {
 	    MessageDigest md = MessageDigest.getInstance("MD5");
 	    md.update(data.getBytes());
@@ -354,6 +361,7 @@ public class GlycanImageCmdline
                     Element root = doc.getDocumentElement();
 		    changestyle(root, "font-size", "11pt");
 		    changestyle(root, "font-family", "ariel, sans-serif");
+                    setwidthandheight(root);
 		    for (Element gr : iterable(root.getElementsByTagName("g"))) {
 			for (Element def : iterable(gr.getElementsByTagName("defs"))) {
 			    for (Element cp : iterable(def.getElementsByTagName("clipPath"))) {
