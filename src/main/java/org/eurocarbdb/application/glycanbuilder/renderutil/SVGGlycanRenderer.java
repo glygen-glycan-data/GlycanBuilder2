@@ -160,10 +160,17 @@ class SVGGlycanRenderer extends GlycanRendererAWT {
 		} else if (node.isSubstituent()) {
 		    g.setAttribute("data.type","Substituent");    
 		    g.setAttribute("data.residueName",node.getResidueName());
-                    Linkage acceptorLinkage = node.getParentLinkage();
-                    g.setAttribute("data.parentResidueIndex",Integer.toString(getNodeID(acceptorLinkage.getParentResidue())));
-                    g.setAttribute("data.parentPositions",acceptorLinkage.getParentPositionsString());
-                    g.setAttribute("data.childPositions",acceptorLinkage.getChildPositionsString());
+                    if (residueUndetQuantity.containsKey(node)) {
+		      g.setAttribute("data.residueIndex",Integer.toString(getNodeID(node)));
+                      g.setAttribute("data.residueUndeterminedMultiplicity",residueUndetQuantity.get(node));
+                      g.setAttribute("data.residueUndeterminedParentPos",residueUndetParentPos.get(node));
+                      g.setAttribute("data.residueUndeterminedChildPos",residueUndetChildPos.get(node));
+                    } else {
+                      Linkage acceptorLinkage = node.getParentLinkage();
+                      g.setAttribute("data.parentResidueIndex",Integer.toString(getNodeID(acceptorLinkage.getParentResidue())));
+                      g.setAttribute("data.parentPositions",acceptorLinkage.getParentPositionsString());
+                      g.setAttribute("data.childPositions",acceptorLinkage.getChildPositionsString());
+                    }
                 }
 
 		boolean selected = selected_residues.contains(node);
