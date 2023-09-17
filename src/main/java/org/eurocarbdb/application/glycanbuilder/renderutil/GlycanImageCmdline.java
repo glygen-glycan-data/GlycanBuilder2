@@ -384,7 +384,7 @@ public class GlycanImageCmdline
 			    }
 			}
 			for (Element gr1 : iterable(gr.getElementsByTagName("g"))) {
-			    if (gr1.getAttribute("data.type").equals("Monosaccharide")) {
+			    if (gr1.getAttribute("ID").startsWith("r-1:")) {
 				for (Element shape : iterable(gr1.getChildNodes())) {
 				    if (shape.hasAttribute("style")) {
 					ArrayList<String> newstyles = new ArrayList<String>();
