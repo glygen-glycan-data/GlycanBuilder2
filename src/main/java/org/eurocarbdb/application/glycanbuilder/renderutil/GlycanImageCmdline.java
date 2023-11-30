@@ -15,6 +15,7 @@ import java.lang.IllegalArgumentException;
 import java.lang.StringIndexOutOfBoundsException;
 import java.lang.NullPointerException;
 import java.lang.StackOverflowError;
+import java.lang.Error;
 import java.lang.StringBuilder;
 import java.util.*;
 
@@ -210,6 +211,8 @@ public class GlycanImageCmdline
 
 	public static void main(String[] args) throws Exception
 	{
+                System.setProperty("java.awt.headless", "true");
+       
 		// GlycanWorkspace -> BuilderWorkspace: different constructor
 		GlycanRendererAWT t_grawt = new GlycanRendererAWT();
 		BuilderWorkspace t_gwb = new BuilderWorkspace(t_grawt);
@@ -228,6 +231,7 @@ public class GlycanImageCmdline
 		boolean reducing_end=true;
 		boolean opaque=true;
 		boolean force=false;
+		boolean excep=false;
 		String outDir = "";
 		String outFile = "";
                 String idprefix = "";
@@ -282,6 +286,11 @@ public class GlycanImageCmdline
 			}
 			if (args[i].equals("force") && args.length > (i+1)) {
 				force = Boolean.parseBoolean(args[i+1]);
+				i += 1;
+				continue;
+			}
+			if (args[i].equals("errorexit") && args.length > (i+1)) {
+				excep = Boolean.parseBoolean(args[i+1]);
 				i += 1;
 				continue;
 			}
@@ -436,7 +445,22 @@ public class GlycanImageCmdline
 
 			}
 			catch (GlycanException ex) {
-				System.out.println(args[i] + ": " + ex.getMessage());
+				System.out.println(args[i] + ": " + ex.getClass().getSimpleName() + "-" + ex.getMessage());
+                                if (excep) {
+                                  throw ex;
+                                }
+			}
+			catch (Exception ex) {
+				System.out.println(args[i] + ": " + ex.getClass().getSimpleName());
+                                if (excep) {
+                                  throw ex;
+                                }
+			}
+			catch (java.lang.Error ex) {
+				System.out.println(args[i] + ": " + ex.getClass().getSimpleName());
+                                if (excep) {
+                                  throw ex;
+                                }
 			}
 
 			outFile = "";
