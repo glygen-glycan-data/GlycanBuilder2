@@ -237,8 +237,7 @@ class SVGGlycanRenderer extends GlycanRendererAWT {
 					g2d.addGroup("l",theStructure,bracket,child);
 					selected = (selected_residues.contains(bracket) && selected_residues.contains(child)) || selected_linkages.contains(link);
 					active = (active_residues == null || (active_residues.contains(bracket) && active_residues.contains(child)));
-
-					if (!_glycan.isComposition() && !link.getChildResidue().getParentsOfFragment().isEmpty()) {
+					if (!_glycan.isComposition()) {
 						theLinkageRenderer.paintEdge(new DefaultPaintable(g2d), link, selected, node_bbox, node_bbox, child_bbox, child_border_bbox);
 					}
 				}
