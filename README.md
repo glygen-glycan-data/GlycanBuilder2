@@ -14,13 +14,22 @@
 * Import/Exportのやり方だけでも書いておく方がユーザビリティに富むと思われるが
 -->
 
+## Downloads
+
+### Standalone executable GlycanBuilder2
+* [GlycanBuilder2](https://gitlab.com/GlycoTool/dev-version/-/tree/master/GlycanBuilder)
+* Supported OS : 
+  * Windowds (64bit)
+  * macOS (64bit/Intel&M1,M2)
+
+
 ## Requirement
 * Java 8 (or later)
 * maven 3.6 (or later)
 
 ## Release node
-Latest version: 1.23.1\
-Please see about [details](CHANGELOG.md#1201-20221228).
+Latest version: 1.25.0\\
+Please see about [details](CHANGELOG.md).
 
 ## Compile
 Clone this repository in the local repository.
@@ -86,10 +95,3 @@ java -XstartOnFirstThread -jar ./target/glycanbuilder2-jar-with-dependencies.jar
 * [Shinichiro Tsuchiya, Nobuyuki P. Aoki, Daisuke Shinmachi, Masaaki Matsubara, Issaku Yamada, Kiyoko F. Aoki-Kinoshita, Hisashi Narimatsu,
 Implementation of GlycanBuilder to draw a wide variety of ambiguous glycans, Carbohydrate Research, Volume 445, 2017, Pages 104-116](https://www.sciencedirect.com/science/article/pii/S0008621516305316)
 
-## Downloads
-
-### Standalone executable GlycanBuilder2
-* [GlycanBuilder2](https://github.com/glycoinfo/Executable/tree/master/GlycanBuilder2)
-* Supported OS : 
-  * Windowds (64bit)
-  * macOS (64bit)
