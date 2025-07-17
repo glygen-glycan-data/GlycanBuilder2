@@ -1026,6 +1026,11 @@ public class GlycanCanvas extends JComponent implements ActionListener,
 		groupn.add(last);
 
 		view_menu.add(last = new JRadioButtonMenuItem(getTheActionManager()
+				.get("notation=" + GraphicOptions.NOTATION_SNFGLINK)));
+		last.setSelected(view_opt.NOTATION.equals(GraphicOptions.NOTATION_SNFGLINK));
+		groupn.add(last);
+
+		view_menu.add(last = new JRadioButtonMenuItem(getTheActionManager()
 				.get("notation=" + GraphicOptions.NOTATION_UOXF)));
 		last.setSelected(view_opt.NOTATION.equals(GraphicOptions.NOTATION_UOXF));
 		
@@ -1137,6 +1142,11 @@ public class GlycanCanvas extends JComponent implements ActionListener,
 				"notation=" + GraphicOptions.NOTATION_CFGLINK)
 				.getJCommandToggleButton("", this,
 						view_opt.NOTATION.equals(GraphicOptions.NOTATION_CFGLINK),
+						ICON_SIZE.L6));
+		panel.addButtonToLastGroup(getTheActionManager().get(
+				"notation=" + GraphicOptions.NOTATION_SNFGLINK)
+				.getJCommandToggleButton("", this,
+						view_opt.NOTATION.equals(GraphicOptions.NOTATION_SNFGLINK),
 						ICON_SIZE.L6));
 	
 		panel.addButtonToLastGroup(getTheActionManager().get(

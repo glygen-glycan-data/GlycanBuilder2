@@ -45,6 +45,11 @@ public class DictionaryConfiguration{
 	public static String CFGLINK_RESIDUE_STYLES_FILE="cfgLink_residueStylesFile";
 	public static String CFGLINK_LINKAGE_STYLES_FILE="cfgLink_linkageStylesFile";
 	
+	//SNFG_LINK
+	public static String SNFGLINK_RESIDUE_PLACEMENTS_FILE="snfgLink_residuePlacementsFile";
+	public static String SNFGLINK_RESIDUE_STYLES_FILE="snfgLink_residueStylesFile";
+	public static String SNFGLINK_LINKAGE_STYLES_FILE="snfgLink_linkageStylesFile";
+	
 	//CFG
 	public static String CFG_RESIDUE_PLACEMENTS_FILE="cfg_residuePlacementsFile";
 	public static String CFG_RESIDUE_STYLES_FILE="cfg_residueStylesFile";
@@ -100,6 +105,9 @@ public class DictionaryConfiguration{
 		list.add(CFGLINK_RESIDUE_PLACEMENTS_FILE);
 		list.add(CFGLINK_RESIDUE_STYLES_FILE);
 		list.add(CFGLINK_LINKAGE_STYLES_FILE);
+		list.add(SNFGLINK_RESIDUE_PLACEMENTS_FILE);
+		list.add(SNFGLINK_RESIDUE_STYLES_FILE);
+		list.add(SNFGLINK_LINKAGE_STYLES_FILE);
 		list.add(CFG_RESIDUE_PLACEMENTS_FILE);
 		list.add(CFG_RESIDUE_STYLES_FILE);
 		list.add(CFG_LINKAGE_STYLES_FILE);
@@ -147,6 +155,10 @@ public class DictionaryConfiguration{
 		theConfiguration.put(DICT_SECT, CFGLINK_RESIDUE_STYLES_FILE, keyToFile.get(CFGLINK_RESIDUE_STYLES_FILE));
 		theConfiguration.put(DICT_SECT, CFGLINK_LINKAGE_STYLES_FILE, keyToFile.get(CFGLINK_LINKAGE_STYLES_FILE));
 		
+		theConfiguration.put(DICT_SECT, SNFGLINK_RESIDUE_PLACEMENTS_FILE, keyToFile.get(SNFGLINK_RESIDUE_PLACEMENTS_FILE));
+		theConfiguration.put(DICT_SECT, SNFGLINK_RESIDUE_STYLES_FILE, keyToFile.get(SNFGLINK_RESIDUE_STYLES_FILE));
+		theConfiguration.put(DICT_SECT, SNFGLINK_LINKAGE_STYLES_FILE, keyToFile.get(SNFGLINK_LINKAGE_STYLES_FILE));
+		
 		theConfiguration.put(DICT_SECT, CFG_RESIDUE_PLACEMENTS_FILE, keyToFile.get(CFG_RESIDUE_PLACEMENTS_FILE));
 		theConfiguration.put(DICT_SECT, CFG_RESIDUE_STYLES_FILE, keyToFile.get(CFG_RESIDUE_STYLES_FILE));
 		theConfiguration.put(DICT_SECT, CFG_LINKAGE_STYLES_FILE, keyToFile.get(CFG_LINKAGE_STYLES_FILE));
@@ -183,6 +195,10 @@ public class DictionaryConfiguration{
 		keyToFile.put(CFGLINK_RESIDUE_STYLES_FILE,theConfiguration.get(DICT_SECT, CFGLINK_RESIDUE_STYLES_FILE, FileConstants.RESIDUE_STYLES_FILE_CFGLINK));
 		keyToFile.put(CFGLINK_RESIDUE_PLACEMENTS_FILE,theConfiguration.get(DICT_SECT, CFGLINK_RESIDUE_PLACEMENTS_FILE, FileConstants.RESIDUE_PLACEMENTS_FILE_CFGLINK));
 		keyToFile.put(CFGLINK_LINKAGE_STYLES_FILE,theConfiguration.get(DICT_SECT, CFGLINK_LINKAGE_STYLES_FILE, FileConstants.LINKAGE_STYLES_FILE_CFGLINK));
+		
+		keyToFile.put(SNFGLINK_RESIDUE_STYLES_FILE,theConfiguration.get(DICT_SECT, SNFGLINK_RESIDUE_STYLES_FILE, FileConstants.RESIDUE_STYLES_FILE_SNFGLINK));
+		keyToFile.put(SNFGLINK_RESIDUE_PLACEMENTS_FILE,theConfiguration.get(DICT_SECT, SNFGLINK_RESIDUE_PLACEMENTS_FILE, FileConstants.RESIDUE_PLACEMENTS_FILE_SNFGLINK));
+		keyToFile.put(SNFGLINK_LINKAGE_STYLES_FILE,theConfiguration.get(DICT_SECT, SNFGLINK_LINKAGE_STYLES_FILE, FileConstants.LINKAGE_STYLES_FILE_SNFGLINK));
 		
 		keyToFile.put(CFGBW_RESIDUE_STYLES_FILE,theConfiguration.get(DICT_SECT, CFGBW_RESIDUE_STYLES_FILE, FileConstants.RESIDUE_STYLES_FILE_CFGBW));
 		keyToFile.put(CFGBW_RESIDUE_PLACEMENTS_FILE,theConfiguration.get(DICT_SECT, CFGBW_RESIDUE_PLACEMENTS_FILE, FileConstants.RESIDUE_PLACEMENTS_FILE_CFGBW));
@@ -238,6 +254,13 @@ public class DictionaryConfiguration{
 			return FileConstants.RESIDUE_PLACEMENTS_FILE_CFGLINK;
 		if(CFGLINK_LINKAGE_STYLES_FILE.equals(dictionaryName))
 			return FileConstants.LINKAGE_STYLES_FILE_CFGLINK;
+		
+		if(SNFGLINK_RESIDUE_STYLES_FILE.equals(dictionaryName))
+			return FileConstants.RESIDUE_STYLES_FILE_SNFGLINK;
+		if(SNFGLINK_RESIDUE_PLACEMENTS_FILE.equals(dictionaryName))
+			return FileConstants.RESIDUE_PLACEMENTS_FILE_SNFGLINK;
+		if(SNFGLINK_LINKAGE_STYLES_FILE.equals(dictionaryName))
+			return FileConstants.LINKAGE_STYLES_FILE_SNFGLINK;
 		
 		if(CFGBW_RESIDUE_STYLES_FILE.equals(dictionaryName))
 			return FileConstants.RESIDUE_STYLES_FILE_CFGBW;

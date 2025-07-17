@@ -54,11 +54,10 @@ public class GlycanImageCmdline
 	private static String readFileAsString(String filePath) throws IOException{
 		byte[] buffer;
 		int maxbuf = 10*1024; // 10K, big enough?
-		if (filePath.equals("-")) {
-			buffer = new byte[maxbuf];
-		} else {
-			buffer = new byte[(int) new File(filePath).length()];
-		}
+                if (!filePath.equals("-")) {
+                        maxbuf = (int) new File(filePath).length();
+                }
+		buffer = new byte[maxbuf];
 		InputStream f = null;
 		int readlen = 0;
 		try {
@@ -71,8 +70,8 @@ public class GlycanImageCmdline
 		} finally {
 			if (f != null) try { f.close(); } catch (IOException ignored) { }
 		}
-		if (readlen >= maxbuf) {
-			throw new IOException("GlycoCTCondensed glycan on standard input too big!");
+		if (readlen > maxbuf) {
+			throw new IOException("Glycan sequence on standard input too big!");
 		}
 		return new String(buffer,0,readlen);
 	}
@@ -138,6 +137,8 @@ public class GlycanImageCmdline
 			t_gwb.setDisplay(GraphicOptions.DISPLAY_NORMAL);
 		} else if (display.equals("compact")) {
 			t_gwb.setDisplay(GraphicOptions.DISPLAY_COMPACT);
+		} else if (display.equals("tight")) {
+			t_gwb.setDisplay(GraphicOptions.DISPLAY_TIGHT);
 		} else {
 			throw new IllegalArgumentException("Bad display option");
 		}
@@ -152,6 +153,8 @@ public class GlycanImageCmdline
 			t_gwb.setNotation(GraphicOptions.NOTATION_CFGBW);
 		} else if (notation.equals("cfglink")) {
 			t_gwb.setNotation(GraphicOptions.NOTATION_CFGLINK);
+		} else if (notation.equals("snfglink")) {
+			t_gwb.setNotation(GraphicOptions.NOTATION_SNFGLINK);
 		} else if (notation.equals("uoxf")) {
 			t_gwb.setNotation(GraphicOptions.NOTATION_UOXF);
 		} else if (notation.equals("text")) {

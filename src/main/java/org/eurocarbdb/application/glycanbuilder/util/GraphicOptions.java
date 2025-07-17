@@ -50,6 +50,8 @@ public class GraphicOptions {
 	public static final String NOTATION_CFGBW = "cfgbw";
 	/** CFG notation with residue position depending on linkages */
 	public static final String NOTATION_CFGLINK = "cfglink";
+	/** SNFG notation with residue position depending on linkages */
+	public static final String NOTATION_SNFGLINK = "snfglink";
 	/** UOXF notation */
 	public static final String NOTATION_UOXF = "uoxf";
 	/** 2D text only notation */
@@ -73,6 +75,7 @@ public class GraphicOptions {
 	 * Reduce the space between residues and do not display the linkage
 	 * information
 	 */
+	public static final String DISPLAY_TIGHT = "tight";
 	public static final String DISPLAY_COMPACT = "compact";
 	/** Do not display the linkage information */
 	public static final String DISPLAY_NORMAL = "normal";
@@ -319,6 +322,9 @@ public class GraphicOptions {
 		if (display.equals(DISPLAY_COMPACT)) {
 			NODE_SPACE_CUSTOM = (int) (NODE_SPACE_DEFAULT * SCALE / 2.);
 			SHOW_INFO_CUSTOM = false;
+		} else if (display.equals(DISPLAY_TIGHT)) {
+			NODE_SPACE_CUSTOM = (int) (NODE_SPACE_DEFAULT * SCALE / 5.);
+			SHOW_INFO_CUSTOM = false;
 		} else if (display.equals(DISPLAY_NORMAL)) {
 			NODE_SPACE_CUSTOM = (int) (NODE_SPACE_DEFAULT * SCALE);
 			SHOW_INFO_CUSTOM = false;
@@ -370,6 +376,10 @@ public class GraphicOptions {
 				NODE_SPACE = (int) (NODE_SPACE_DEFAULT * SCALE / 2.);
 				SHOW_INFO = false;
 				DISPLAY = DISPLAY_COMPACT;
+			} else if (display.equals(DISPLAY_TIGHT)) {
+				NODE_SPACE = (int) (NODE_SPACE_DEFAULT * SCALE / 5.);
+				SHOW_INFO = false;
+				DISPLAY = DISPLAY_TIGHT;
 			} else if (display.equals(DISPLAY_NORMAL)) {
 				NODE_SPACE = (int) (NODE_SPACE_DEFAULT * SCALE);
 				SHOW_INFO = false;

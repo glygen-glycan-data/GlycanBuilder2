@@ -43,7 +43,8 @@ public class FileConstants {
     public static final String RESIDUE_STYLES_FILE_UOXF    = "/conf/residue_styles_uoxf";
     public static final String RESIDUE_STYLES_FILE_TEXT    = "/conf/residue_styles_text";
     public static final String RESIDUE_STYLES_FILE_UOXFCOL = "/conf/residue_styles_uoxfcol";
-    public static final String RESIDUE_STYLES_FILE_SNFG = "/conf/residue_styles_snfg";
+    public static final String RESIDUE_STYLES_FILE_SNFG    = "/conf/residue_styles_snfg";
+    public static final String RESIDUE_STYLES_FILE_SNFGLINK = "/conf/residue_styles_snfg";
 
     public static final String RESIDUE_PLACEMENTS_FILE_CFG     = "/conf/residue_placements_cfg";
     public static final String RESIDUE_PLACEMENTS_FILE_CFGBW   = "/conf/residue_placements_cfg";
@@ -51,6 +52,7 @@ public class FileConstants {
     public static final String RESIDUE_PLACEMENTS_FILE_UOXF    = "/conf/residue_placements_uoxf";
     public static final String RESIDUE_PLACEMENTS_FILE_TEXT    = "/conf/residue_placements_cfg";
     public static final String RESIDUE_PLACEMENTS_FILE_SNFG    = "/conf/residue_placements_snfg";
+    public static final String RESIDUE_PLACEMENTS_FILE_SNFGLINK = "/conf/residue_placements_uoxf";
     
     public static final String LINKAGE_STYLES_FILE_CFG     = "/conf/linkage_styles_cfg";
     public static final String LINKAGE_STYLES_FILE_CFGBW   = "/conf/linkage_styles_cfg";
@@ -58,5 +60,6 @@ public class FileConstants {
     public static final String LINKAGE_STYLES_FILE_UOXF    = "/conf/linkage_styles_uoxf";
     public static final String LINKAGE_STYLES_FILE_TEXT    = "/conf/linkage_styles_cfg";    
     public static final String LINKAGE_STYLES_FILE_SNFG    = "/conf/linkage_styles_snfg";
+    public static final String LINKAGE_STYLES_FILE_SNFGLINK = "/conf/linkage_styles_cfglink";
 }
     

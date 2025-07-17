@@ -74,6 +74,7 @@ public class CanvasAction {
 		a_oActionManager.add("notation=" + GraphicOptions.NOTATION_UOXF, themeManager.getResizableIcon("uoxf", defaultMenuIconSize), "UOXF notation", KeyEvent.VK_O, "", a_oListener);
 		a_oActionManager.add("notation=" + GraphicOptions.NOTATION_UOXFCOL, themeManager.getResizableIcon("uoxfcol", defaultMenuIconSize), "UOXFCOL notation", KeyEvent.VK_O, "", a_oListener);
 		a_oActionManager.add("notation=" + GraphicOptions.NOTATION_TEXT, themeManager.getResizableIcon("text", defaultMenuIconSize), "Text only notation", KeyEvent.VK_T, "", a_oListener);
+		a_oActionManager.add("notation=" + GraphicOptions.NOTATION_SNFGLINK, themeManager.getResizableIcon("", defaultMenuIconSize), "SNFG with linkage placement notation", KeyEvent.VK_L, "", a_oListener);
 		a_oActionManager.add("notation=" + GraphicOptions.NOTATION_SNFG, themeManager.getResizableIcon("", defaultMenuIconSize), "SNFG notation", KeyEvent.VK_S, "", a_oListener);
 	
 		a_oActionManager.add("display=" + GraphicOptions.DISPLAY_COMPACT, ThemeManager.getResizableEmptyIcon(ICON_SIZE.L3), "compact view", KeyEvent.VK_O, "", a_oListener);

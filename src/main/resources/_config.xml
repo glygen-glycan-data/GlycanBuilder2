@@ -7,6 +7,7 @@
 <crossRingFragmentTypesFile>/conf/cross_ring_fragment_types</crossRingFragmentTypesFile>
 <uoxf_residuePlacementsFile>/conf/residue_placements_uoxf</uoxf_residuePlacementsFile>
 <cfgLink_residueStylesFile>/conf/residue_styles_cfg</cfgLink_residueStylesFile>
+<snfgLink_residueStylesFile>/conf/residue_styles_snfg</snfgLink_residueStylesFile>
 <cfgBW_linkageStylesFile>/conf/linkage_styles_cfg</cfgBW_linkageStylesFile>
 <residueTypesFile>/conf/residue_types</residueTypesFile>
 <coreTypesFile>/conf/core_types</coreTypesFile>
@@ -17,9 +18,11 @@
 <uoxfcol_linkageStylesFile>/conf/linkage_styles_uoxf</uoxfcol_linkageStylesFile>
 <text_residueStylesFile>/conf/residue_styles_text</text_residueStylesFile>
 <cfgLink_linkageStylesFile>/conf/linkage_styles_cfglink</cfgLink_linkageStylesFile>
+<snfgLink_linkageStylesFile>/conf/linkage_styles_cfglink</snfgLink_linkageStylesFile>
 <uoxfcol_residueStylesFile>/conf/residue_styles_uoxfcol</uoxfcol_residueStylesFile>
 <terminalTypesFile>/conf/terminal_types</terminalTypesFile>
 <cfgLink_residuePlacementsFile>/conf/residue_placements_uoxf</cfgLink_residuePlacementsFile>
+<snfgLink_residuePlacementsFile>/conf/residue_placements_uoxf</snfgLink_residuePlacementsFile>
 <text_linkageStylesFile>/conf/linkage_styles_cfg</text_linkageStylesFile>
 <cfg_residuePlacementsFile>/conf/residue_placements_cfg</cfg_residuePlacementsFile>
 <text_residuePlacementsFile>/conf/residue_placements_cfg</text_residuePlacementsFile>
