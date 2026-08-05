@@ -45,7 +45,11 @@ class SVGGlycanRenderer extends GlycanRendererAWT {
     HashMap<Object,String> residueUndetChildPos = new HashMap<Object,String>();
     Residue root=null;
 
+    /** The renderer this one draws on behalf of, so anything it customises reaches the SVG output too. */
+    private final GlycanRendererAWT theSource;
+
     public SVGGlycanRenderer(GlycanRendererAWT src) {
+        theSource = src;
         theResidueRenderer = src.theResidueRenderer;
         theLinkageRenderer = src.theLinkageRenderer;
         theResiduePlacementDictionary = src.theResiduePlacementDictionary;
@@ -54,16 +58,25 @@ class SVGGlycanRenderer extends GlycanRendererAWT {
         theGraphicOptions = src.theGraphicOptions;
     }
 
+    /**
+     * The mass text of the renderer this one draws on behalf of, so that the SVG output reads like the
+     * canvas or image the same renderer would have produced.
+     * @param structure Structure being drawn.
+     * @return Returns the mass text.
+     */
+    @Override
+    protected String getMassText(Glycan structure) {
+        return (theSource != null) ? theSource.getMassText(structure) : super.getMassText(structure);
+    }
+
     public void paint(GroupingSVGGraphics2D g2d, Glycan structure, HashSet<Residue> selected_residues, HashSet<Linkage> selected_linkages, boolean show_mass, boolean show_redend, PositionManager posManager, BBoxManager bboxManager) {
-        if (structure == null || structure.getRoot(show_redend) == null)
+        boolean laysOutAglycon = laysOutAglycon(structure, show_redend);
+        if (structure == null || structure.getRoot(laysOutAglycon) == null)
             return;
 
 	theStructure = structure;
 
-        boolean isAlditol = show_redend;
-        if(!structure.isComposition()) {
-            isAlditol = GlycanUtils.isShowRedEnd(structure, theGraphicOptions, show_redend);
-        }
+        this.paintsAglycon = laysOutAglycon && show_redend;
 
         this.assignID(structure);
 
@@ -72,7 +85,7 @@ class SVGGlycanRenderer extends GlycanRendererAWT {
 
         // draw core structures
         if (!structure.isComposition()) {
-            paintResidue(g2d, structure.getRoot(isAlditol), selected_residues, selected_linkages, null, posManager, bboxManager);
+            paintResidue(g2d, structure.getRoot(laysOutAglycon), selected_residues, selected_linkages, null, posManager, bboxManager);
         }
 
         // draw fragments
@@ -124,8 +137,11 @@ class SVGGlycanRenderer extends GlycanRendererAWT {
 		// paint node
 		boolean selected = selected_residues.contains(node);
 		boolean active = (active_residues == null || active_residues.contains(node));
-		theResidueRenderer.paint(new DefaultPaintable(g2d), node, selected, active, posManager.isOnBorder(node), parent_bbox, node_bbox,
-				support_bbox,posManager.getOrientation(node));
+		if (paintsAglycon || !node.isReducingEnd()) {
+			g2d.addGroup("r",theStructure,node);
+			theResidueRenderer.paint(new DefaultPaintable(g2d), node, selected, active, posManager.isOnBorder(node), parent_bbox, node_bbox,
+					support_bbox,posManager.getOrientation(node));
+		}
 
 		// paint children
 		for (Linkage link : node.getChildrenLinkages())
