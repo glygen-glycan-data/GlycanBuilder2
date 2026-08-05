@@ -109,7 +109,10 @@ class SVGGlycanRenderer extends GlycanRendererAWT {
 			Residue child = link.getChildResidue();
 			Rectangle child_bbox = bboxManager.getCurrent(child);
 			Rectangle child_border_bbox = bboxManager.getBorder(child);
-			
+
+			// The bond to a hidden aglycon is laid out only so that its linkage information supplies the
+			// reducing end's anomeric symbol, painted by the "paint info" loop below; the bond itself and
+			// the aglycon are left unpainted.
 			if (child_bbox != null && !posManager.isOnBorder(child) && (paintsAglycon || !node.isReducingEnd())) {
 				g2d.addGroup("l",theStructure,node,child);
 				boolean selected = (selected_residues.contains(node) && selected_residues.contains(child)) || selected_linkages.contains(link);
