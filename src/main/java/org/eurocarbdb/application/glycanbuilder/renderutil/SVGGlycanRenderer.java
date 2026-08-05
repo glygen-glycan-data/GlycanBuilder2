@@ -110,7 +110,7 @@ class SVGGlycanRenderer extends GlycanRendererAWT {
 			Rectangle child_bbox = bboxManager.getCurrent(child);
 			Rectangle child_border_bbox = bboxManager.getBorder(child);
 			
-			if (child_bbox != null && !posManager.isOnBorder(child)) {
+			if (child_bbox != null && !posManager.isOnBorder(child) && (paintsAglycon || !node.isReducingEnd())) {
 				g2d.addGroup("l",theStructure,node,child);
 				boolean selected = (selected_residues.contains(node) && selected_residues.contains(child)) || selected_linkages.contains(link);
 				boolean active = (active_residues == null || (active_residues.contains(node) && active_residues.contains(child)));
