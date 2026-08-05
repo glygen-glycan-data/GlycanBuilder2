@@ -58,7 +58,15 @@ class SVGGlycanRenderer extends GlycanRendererAWT {
         theGraphicOptions = src.theGraphicOptions;
     }
 
-    /**
+    public int getNodeID(Object node) {
+        if( node==null ) return -1;
+        if( residueIndex.containsKey(node) ) return residueIndex.get(node);
+        lastResidueIndex += 1;
+        residueIndex.put(node,lastResidueIndex);
+        return lastResidueIndex;
+    }
+
+	/**
      * The mass text of the renderer this one draws on behalf of, so that the SVG output reads like the
      * canvas or image the same renderer would have produced.
      * @param structure Structure being drawn.
@@ -127,7 +135,18 @@ class SVGGlycanRenderer extends GlycanRendererAWT {
 			// reducing end's anomeric symbol, painted by the "paint info" loop below; the bond itself and
 			// the aglycon are left unpainted.
 			if (child_bbox != null && !posManager.isOnBorder(child) && (paintsAglycon || !node.isReducingEnd())) {
-				g2d.addGroup("l",theStructure,node,child);
+			    Element g = g2d.addGroup("l",theStructure,node,child);
+				if (node.isSaccharide()) {
+				    g.setAttribute("data.type","Linkage");
+				    g.setAttribute("data.parentResidueIndex",Integer.toString(getNodeID(node)));
+				    g.setAttribute("data.parentPositions",link.getParentPositionsString());
+				    // g.setAttribute("data.parentLinkageType",link.getParentLinkageType().toString());
+				    g.setAttribute("data.childResidueIndex",Integer.toString(getNodeID(child)));
+				    g.setAttribute("data.childPositions",link.getChildPositionsString());
+				    // g.setAttribute("data.childLinkageType",link.getChildLinkageType().toString());
+				} else if (node.isReducingEnd() || node.isFreeReducingEnd()) {
+                    root = child;
+                }
 				boolean selected = (selected_residues.contains(node) && selected_residues.contains(child)) || selected_linkages.contains(link);
 				boolean active = (active_residues == null || (active_residues.contains(node) && active_residues.contains(child)));
 				theLinkageRenderer.paintEdge(new DefaultPaintable(g2d),link,selected,node_bbox,border_bbox,child_bbox,child_border_bbox);                
@@ -135,6 +154,41 @@ class SVGGlycanRenderer extends GlycanRendererAWT {
 		}
 
 		// paint node
+		Element g = g2d.addGroup("r",theStructure,node);
+		if (node.isSaccharide()) {
+		    g.setAttribute("data.type","Monosaccharide");    
+		    g.setAttribute("data.residueIndex",Integer.toString(getNodeID(node)));
+		    g.setAttribute("data.residueName",node.getResidueName());
+		    g.setAttribute("data.residueRingSize",""+node.getRingSize());
+		    g.setAttribute("data.residueChirality",""+node.getChirality());
+		    g.setAttribute("data.residueAnomericState",""+node.getAnomericState());
+                    if (node.isAlditol()) {
+		      g.setAttribute("data.residueIsAlditol","true");
+                    }
+                    if (residueUndetQuantity.containsKey(node)) {
+                      g.setAttribute("data.residueUndeterminedMultiplicity",residueUndetQuantity.get(node));
+                      g.setAttribute("data.residueUndeterminedParentPos",residueUndetParentPos.get(node));
+                      g.setAttribute("data.residueUndeterminedChildPos",residueUndetChildPos.get(node));
+                    }
+                    if (node.isFreeReducingEnd() || node.isReducingEnd() || node == root) {
+		      g.setAttribute("data.residueIsReducingEnd","true");    
+                    }
+		} else if (node.isSubstituent()) {
+		    g.setAttribute("data.type","Substituent");    
+		    g.setAttribute("data.residueName",node.getResidueName());
+                    if (residueUndetQuantity.containsKey(node)) {
+		      g.setAttribute("data.residueIndex",Integer.toString(getNodeID(node)));
+                      g.setAttribute("data.residueUndeterminedMultiplicity",residueUndetQuantity.get(node));
+                      g.setAttribute("data.residueUndeterminedParentPos",residueUndetParentPos.get(node));
+                      g.setAttribute("data.residueUndeterminedChildPos",residueUndetChildPos.get(node));
+                    } else {
+                      Linkage acceptorLinkage = node.getParentLinkage();
+                      g.setAttribute("data.parentResidueIndex",Integer.toString(getNodeID(acceptorLinkage.getParentResidue())));
+                      g.setAttribute("data.parentPositions",acceptorLinkage.getParentPositionsString());
+                      g.setAttribute("data.childPositions",acceptorLinkage.getChildPositionsString());
+                    }
+                }
+
 		boolean selected = selected_residues.contains(node);
 		boolean active = (active_residues == null || active_residues.contains(node));
 		if (paintsAglycon || !node.isReducingEnd()) {
