@@ -28,7 +28,6 @@ import javax.swing.border.*;
 import org.eurocarbdb.application.glycanbuilder.converter.GlycanParserFactory;
 import org.eurocarbdb.application.glycanbuilder.util.ActionManager;
 import org.eurocarbdb.application.glycanbuilder.util.MouseUtils;
-import chrriis.dj.nativeswing.swtimpl.NativeInterface;
 
 import org.eurocarbdb.application.glycanbuilder.dataset.CoreDictionary;
 import org.eurocarbdb.application.glycanbuilder.fileutil.ExtensionFileFilter;
@@ -187,8 +186,6 @@ public class GlycanBuilder extends JFrame implements ActionListener, BaseDocumen
 		theWorkspace.setChanged(false);
 
 		updateActions();
-
-		NativeInterface.open();
 
 		JFrame.setDefaultLookAndFeelDecorated(true);
 		JDialog.setDefaultLookAndFeelDecorated(true);
@@ -789,8 +786,10 @@ public class GlycanBuilder extends JFrame implements ActionListener, BaseDocumen
 
 			// esporta il documento su file
 			if( theDoc.isSequenceFormat(format) ) {
-				if( theDoc.exportTo(filename,format) )
+				if( theDoc.exportTo(filename,format) ) {
 					setLastExportedFile(filename);
+					warnAboutExportFailures(theDoc, format);
+				}
 				return true;
 			}
 			else if( SVGUtils.export((GlycanRendererAWT) theWorkspace.getGlycanRenderer(),filename,theDoc.getStructures(),theWorkspace.getGraphicOptions().SHOW_MASSES,theWorkspace.getGraphicOptions().SHOW_REDEND,format) ) {
@@ -799,6 +798,32 @@ public class GlycanBuilder extends JFrame implements ActionListener, BaseDocumen
 			}        
 		}
 		return false;
+	}
+
+	/**
+       Warn if some structures produced no output on the export just performed (e.g.
+       compositions exported to a format that can't represent them yet), so a blank
+       entry in the file doesn't go unnoticed.
+	 */
+	private void warnAboutExportFailures(GlycanDocument doc, String format) {
+		ArrayList<Glycan> failures = doc.getLastExportFailures();
+		if( failures.isEmpty() ) return;
+
+		LinkedList<Glycan> all = doc.getStructures();
+		StringBuilder positions = new StringBuilder();
+		int index = 0;
+		for( Glycan g : all ) {
+			index++;
+			if( failures.contains(g) ) {
+				if( positions.length()>0 ) positions.append(", ");
+				positions.append(index);
+			}
+		}
+
+		JOptionPane.showMessageDialog(this,
+				failures.size() + " of " + all.size() + " structure(s) could not be exported to " + format
+						+ " and were left blank in the file (position(s): " + positions + ").",
+				"Export incomplete", JOptionPane.WARNING_MESSAGE);
 	}
 
 	/**
@@ -949,9 +974,8 @@ public class GlycanBuilder extends JFrame implements ActionListener, BaseDocumen
        Run the application. Open the application frame
 	 * @throws MalformedURLException 
 	 */
-	public static void main(String[] args) throws MalformedURLException {    
+	public static void main(String[] args) throws MalformedURLException {
 		new GlycanBuilder().setVisible(true);
-		NativeInterface.runEventPump();
-	}   
+	}
 }
 

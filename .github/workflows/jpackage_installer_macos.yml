@@ -128,7 +128,6 @@ jobs:
           --vendor "The Noguchi Institute - Glycoinformatics Lab." \
           --description "A tool for drawing and editing glycans intuitively" \
           --copyright "Copyright © 2026 The Noguchi Institute" \
-          --java-options "-XstartOnFirstThread" \
           --mac-sign \
           --mac-signing-key-user-name "${{ steps.signing.outputs.IDENTITY }}"
       shell: bash
@@ -145,7 +144,8 @@ jobs:
           --apple-id "$APPLE_ID" \
           --password "$APPLE_APP_PASSWORD" \
           --team-id "$APPLE_TEAM_ID" \
-          --wait
+          --wait \
+          --timeout 7200
         xcrun stapler staple "$fname"
       shell: bash
 
