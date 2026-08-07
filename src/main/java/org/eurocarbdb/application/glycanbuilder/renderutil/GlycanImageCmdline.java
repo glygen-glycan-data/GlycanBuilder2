@@ -35,12 +35,13 @@ import org.eurocarbdb.application.glycanbuilder.linkage.Union;
 import org.eurocarbdb.application.glycanbuilder.BuilderWorkspace;
 import org.eurocarbdb.resourcesdb.monosaccharide.MonosaccharideException;
 import org.eurocarbdb.MolecularFramework.util.visitor.GlycoVisitorException;
+import org.eurocarbdb.MolecularFramework.io.SugarImporterException;
 
 import java.security.MessageDigest;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.transform.*; 
+import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Document;
@@ -51,12 +52,12 @@ import org.w3c.dom.Element;
 public class GlycanImageCmdline
 {
 
-	private static String readFileAsString(String filePath) throws IOException{
+	private static String readFileAsString(String filePath) throws IOException {
 		byte[] buffer;
 		int maxbuf = 10*1024; // 10K, big enough?
-                if (!filePath.equals("-")) {
-                        maxbuf = (int) new File(filePath).length();
-                }
+		if (!filePath.equals("-")) {
+			maxbuf = (int) new File(filePath).length();
+		}
 		buffer = new byte[maxbuf];
 		InputStream f = null;
 		int readlen = 0;
@@ -110,9 +111,9 @@ public class GlycanImageCmdline
 		if ((oldextn != null) && (extn != oldextn)) {
 			throw new IOException("Bad extension");
 		}
-                if (newextn == null) {
-                    return base;
-                } 
+		if (newextn == null) {
+			return base;
+		}
 		return base + "." + newextn;
 	}
 
@@ -166,56 +167,56 @@ public class GlycanImageCmdline
 		}
 	}
 
-        // from: http://www.java2s.com/example/java-utility-method/xml-nodelist/iterable-nodelist-nodelist-f1617.html
-        public static Iterable<Element> iterable(NodeList nodeList) {
-	    return () -> new Iterator<Element>() {
-		private int index = 0;
-		
-		@Override
-		    public boolean hasNext() {
-		    return index < nodeList.getLength();
-		}
-		
-		@Override
-		    public Element next() {
-		    return ((Element)nodeList.item(index++));
-		}
-	    };
+	// from: http://www.java2s.com/example/java-utility-method/xml-nodelist/iterable-nodelist-nodelist-f1617.html
+	public static Iterable<Element> iterable(NodeList nodeList) {
+		return () -> new Iterator<Element>() {
+			private int index = 0;
+
+			@Override
+			public boolean hasNext() {
+				return index < nodeList.getLength();
+			}
+
+			@Override
+			public Element next() {
+				return ((Element)nodeList.item(index++));
+			}
+		};
 	}
 
-        public static void changestyle(Element elt, String key, String value) {
-	    ArrayList<String> newstyles = new ArrayList<String>();
-	    for (String style : elt.getAttribute("style").split(";\\s*")) {
-		if (style.startsWith(key+":")) {
-		    style = key+":"+value;
+	public static void changestyle(Element elt, String key, String value) {
+		ArrayList<String> newstyles = new ArrayList<String>();
+		for (String style : elt.getAttribute("style").split(";\\s*")) {
+			if (style.startsWith(key+":")) {
+				style = key+":"+value;
+			}
+			newstyles.add(style);
 		}
-		newstyles.add(style);
-	    }
-	    elt.setAttribute("style",String.join("; ",newstyles)+";");
+		elt.setAttribute("style",String.join("; ",newstyles)+";");
 	}
 
-        public static void setwidthandheight(Element svgelt) {
-            String vb = svgelt.getAttribute("viewBox");
-            String[] dims = vb.split("\\s+");
-            svgelt.setAttribute("width",dims[2]);
-            svgelt.setAttribute("height",dims[3]);
-        }
+	public static void setwidthandheight(Element svgelt) {
+		String vb = svgelt.getAttribute("viewBox");
+		String[] dims = vb.split("\\s+");
+		svgelt.setAttribute("width",dims[2]);
+		svgelt.setAttribute("height",dims[3]);
+	}
 
-        public static String md5hash(String data) throws java.security.NoSuchAlgorithmException {
-	    MessageDigest md = MessageDigest.getInstance("MD5");
-	    md.update(data.getBytes());
-            byte[] digest = md.digest();      
-	    StringBuffer hexString = new StringBuffer();
-            for (int i = 0;i<digest.length;i++) {
-		hexString.append(Integer.toHexString(0xFF & digest[i]));
-	    }
-	    return hexString.toString(); 
+	public static String md5hash(String data) throws java.security.NoSuchAlgorithmException {
+		MessageDigest md = MessageDigest.getInstance("MD5");
+		md.update(data.getBytes());
+		byte[] digest = md.digest();
+		StringBuffer hexString = new StringBuffer();
+		for (int i = 0;i<digest.length;i++) {
+			hexString.append(Integer.toHexString(0xFF & digest[i]));
+		}
+		return hexString.toString();
 	}
 
 	public static void main(String[] args) throws Exception
 	{
-                System.setProperty("java.awt.headless", "true");
-       
+		System.setProperty("java.awt.headless", "true");
+
 		// GlycanWorkspace -> BuilderWorkspace: different constructor
 		GlycanRendererAWT t_grawt = new GlycanRendererAWT();
 		BuilderWorkspace t_gwb = new BuilderWorkspace(t_grawt);
@@ -237,8 +238,8 @@ public class GlycanImageCmdline
 		boolean excep=false;
 		String outDir = "";
 		String outFile = "";
-                String idprefix = "";
-                boolean idprefix_from_filename = false;
+		String idprefix = "";
+		boolean idprefix_from_filename = false;
 
 		for (int i=0; i<args.length; i+=1) {
 
@@ -309,161 +310,196 @@ public class GlycanImageCmdline
 			}
 
 			String glycanstr = readFileAsString(args[i]);
-                        if (idprefix_from_filename) {
-                            idprefix = removeExtn(args[i]);
-                        }
-                        
+			if (idprefix_from_filename) {
+				idprefix = removeExtn(args[i]);
+			}
+
 			if (outFile.equals("")) {
-			    if (outDir.equals("")) {
-				outFile = changeExtn(args[i],imagefmt);
-			    } else {
-                                File f = new File(args[i]);
-			        String name = f.getName();
-			        String newname = changeExtn(name,imagefmt);
-				outFile = outDir + File.separator + newname;
-			    }
+				if (outDir.equals("")) {
+					outFile = changeExtn(args[i],imagefmt);
+				} else {
+					File f = new File(args[i]);
+					String name = f.getName();
+					String newname = changeExtn(name,imagefmt);
+					outFile = outDir + File.separator + newname;
+				}
 			}
 
 			try {
-                            File outputfile = new File(outFile);
-			    if (force || !outputfile.exists()) {
+				File outputfile = new File(outFile);
+				if (force || !outputfile.exists()) {
 
-			    Glycan glycan;
-			    if (glycanstr.startsWith("WURCS")) {
-				try {
-			            glycan = wparser.readGlycan(glycanstr, mo);
-				} catch (Exception ex) {
-				    throw new GlycanException(ex.getMessage());
-				}
-			    } else if (glycanstr.startsWith("RES")) {
-				try {
-			            glycan = parser.readGlycan(glycanstr, mo);
-				} catch (Exception ex) {
-				    throw new GlycanException(ex.getMessage());
-				}
-			    } else {
-			        throw new IllegalArgumentException("Bad glycan descriptor!");
-			    }
-
-			    if (imagefmt.equalsIgnoreCase("png") || imagefmt.equalsIgnoreCase("jpg") || imagefmt.equalsIgnoreCase("jpeg")) {
-			        BufferedImage img = t_gwb.getGlycanRenderer().getImage(glycan, opaque, mass_opts, reducing_end, scale);
-                                ImageIO.write(img, imagefmt, outputfile);
-				System.out.println(args[i]+" -> "+outputfile);
-			    }
-			    else if (imagefmt.equalsIgnoreCase("svg")) {
-
-                    String t_svg = SVGUtils.getVectorGraphics(t_grawt, new Union<Glycan>(glycan), mass_opts, reducing_end);
-                    DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-
-                    dbFactory.setValidating(false);
-                    dbFactory.setNamespaceAware(true);
-                    dbFactory.setFeature("http://xml.org/sax/features/namespaces", false);
-                    dbFactory.setFeature("http://xml.org/sax/features/validation", false);
-                    dbFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-dtd-grammar", false);
-                    dbFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-
-                    DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-                    StringBuilder xmlStringBuilder = new StringBuilder(t_svg);
-                    ByteArrayInputStream input = new ByteArrayInputStream(xmlStringBuilder.toString().getBytes("UTF-8"));
-                    Document doc = dBuilder.parse(input);
-                    // doc.getDocumentElement().normalize();
-
-		    Map<String, String> cpmap = new HashMap<String, String>();
-
-                    Element root = doc.getDocumentElement();
-		    changestyle(root, "font-size", "11pt");
-		    changestyle(root, "font-family", "ariel, sans-serif");
-                    setwidthandheight(root);
-		    for (Element gr : iterable(root.getElementsByTagName("g"))) {
-			for (Element def : iterable(gr.getElementsByTagName("defs"))) {
-			    for (Element cp : iterable(def.getElementsByTagName("clipPath"))) {
-				String cpid = cp.getAttribute("id");
-				String newcpid = null;
-				if (idprefix.equals("")) {
-                                    Element pathelt = ((Element)cp.getFirstChild());
-				    String d = pathelt.getAttribute("d");
-                                    if (pathelt.hasAttribute("style")) {
-                                        String style = pathelt.getAttribute("style");
-				        newcpid = cpid+":"+md5hash(d+":"+style);
-                                    } else {
-				        newcpid = cpid+":"+md5hash(d);
-                                    }
-				} else {
-				    newcpid = idprefix+":"+cpid;
-				}
-				cp.setAttribute("id",newcpid);
-				cpmap.put(cpid,newcpid);
-			    }
-			}
-			for (Element gr1 : iterable(gr.getElementsByTagName("g"))) {
-			    if (gr1.getAttribute("ID").startsWith("r-1:")) {
-				for (Element shape : iterable(gr1.getChildNodes())) {
-				    if (shape.hasAttribute("style")) {
-					ArrayList<String> newstyles = new ArrayList<String>();
-					for (String style : shape.getAttribute("style").split(";\\s*")) {
-					    if (style.startsWith("clip-path:url(")) {
-						String[] data = style.split("[:(#)]");
-						String cpid = data[3];
-						style = "clip-path:url(#" + cpmap.get(cpid) + ")";
-					    }
-					    newstyles.add(style);
+					Glycan glycan;
+					if (glycanstr.startsWith("WURCS")) {
+						try {
+							glycan = wparser.readGlycan(glycanstr, mo);
+						} catch (java.lang.Error ex) {
+							// ex.printStackTrace();
+							throw new GlycanException("readGlycan(WURCS): " + ex.getClass().getSimpleName());
+						} catch (NullPointerException ex) {
+							// ex.printStackTrace();
+							throw new GlycanException("readGlycan(WURCS): " + ex.getClass().getSimpleName());
+						} catch (Exception ex) {
+							// ex.printStackTrace();
+							throw new GlycanException("readGlycan(WURCS): " + ex.getMessage());
+						}
+					} else if (glycanstr.startsWith("RES")) {
+						try {
+							glycan = parser.readGlycan(glycanstr, mo);
+						} catch (java.lang.Error ex) {
+							throw new GlycanException("readGlycan(GlycoCT): " + ex.getClass().getSimpleName());
+						} catch (NullPointerException ex) {
+							// ex.printStackTrace();
+							throw new GlycanException("readGlycan(GlycoCT): " + ex.getClass().getSimpleName());
+						} catch (SugarImporterException ex) {
+							throw new GlycanException("readGlycan(GlycoCT): " + ex.getClass().getSimpleName());
+						} catch (Exception ex) {
+							// ex.printStackTrace();
+							throw new GlycanException("readGlycan(GlycoCT): " + ex.getMessage());
+						}
+					} else {
+						throw new IllegalArgumentException("Bad glycan descriptor!");
 					}
-					shape.setAttribute("style",String.join("; ",newstyles)+";");
-				    }
+
+					if (imagefmt.equalsIgnoreCase("png") || imagefmt.equalsIgnoreCase("jpg") || imagefmt.equalsIgnoreCase("jpeg")) {
+						try {
+							BufferedImage img = t_gwb.getGlycanRenderer().getImage(glycan, opaque, mass_opts, reducing_end, scale);
+							ImageIO.write(img, imagefmt, outputfile);
+						} catch (java.lang.Error ex) {
+							throw new GlycanException("getImage: " + ex.getClass().getSimpleName());
+						} catch (NullPointerException ex) {
+							// ex.printStackTrace();
+							throw new GlycanException("getImage: " + ex.getClass().getSimpleName());
+						} catch (Exception ex) {
+							throw new GlycanException("getImage: " + ex.getMessage());
+						}
+						System.out.println(args[i]+" -> "+outputfile);
+					} else if (imagefmt.equalsIgnoreCase("svg")) {
+
+						String t_svg;
+						try {
+							t_svg = SVGUtils.getVectorGraphics(t_grawt, new Union<Glycan>(glycan), mass_opts, reducing_end);
+						} catch (java.lang.Error ex) {
+							throw new GlycanException("getVectorGraphics: " + ex.getClass().getSimpleName());
+						} catch (NullPointerException ex) {
+							// ex.printStackTrace();
+							throw new GlycanException("getVectorGraphics: " + ex.getClass().getSimpleName());
+						} catch (Exception ex) {
+							throw new GlycanException("getVectorGraphics: " + ex.getMessage());
+						}
+						DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+
+						dbFactory.setValidating(false);
+						dbFactory.setNamespaceAware(true);
+						dbFactory.setFeature("http://xml.org/sax/features/namespaces", false);
+						dbFactory.setFeature("http://xml.org/sax/features/validation", false);
+						dbFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-dtd-grammar", false);
+						dbFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+
+						DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+						StringBuilder xmlStringBuilder = new StringBuilder(t_svg);
+						ByteArrayInputStream input = new ByteArrayInputStream(xmlStringBuilder.toString().getBytes("UTF-8"));
+						Document doc = dBuilder.parse(input);
+						// doc.getDocumentElement().normalize();
+
+						Map<String, String> cpmap = new HashMap<String, String>();
+
+						Element root = doc.getDocumentElement();
+						changestyle(root, "font-size", "11pt");
+						changestyle(root, "font-family", "ariel, sans-serif");
+						setwidthandheight(root);
+						for (Element gr : iterable(root.getElementsByTagName("g"))) {
+							for (Element def : iterable(gr.getElementsByTagName("defs"))) {
+								for (Element cp : iterable(def.getElementsByTagName("clipPath"))) {
+									String cpid = cp.getAttribute("id");
+									String newcpid = null;
+									if (idprefix.equals("")) {
+										Element pathelt = ((Element)cp.getFirstChild());
+										String d = pathelt.getAttribute("d");
+										if (pathelt.hasAttribute("style")) {
+											String style = pathelt.getAttribute("style");
+											newcpid = cpid+":"+md5hash(d+":"+style);
+										} else {
+											newcpid = cpid+":"+md5hash(d);
+										}
+									} else {
+										newcpid = idprefix+":"+cpid;
+									}
+									cp.setAttribute("id",newcpid);
+									cpmap.put(cpid,newcpid);
+								}
+							}
+							for (Element gr1 : iterable(gr.getElementsByTagName("g"))) {
+								if (gr1.getAttribute("ID").startsWith("r-1:")) {
+									for (Element shape : iterable(gr1.getChildNodes())) {
+										if (shape.hasAttribute("style")) {
+											ArrayList<String> newstyles = new ArrayList<String>();
+											for (String style : shape.getAttribute("style").split(";\\s*")) {
+												if (style.startsWith("clip-path:url(")) {
+													String[] data = style.split("[:(#)]");
+													String cpid = data[3];
+													style = "clip-path:url(#" + cpmap.get(cpid) + ")";
+												}
+												newstyles.add(style);
+											}
+											shape.setAttribute("style",String.join("; ",newstyles)+";");
+										}
+									}
+								}
+								if (!idprefix.equals("") && gr1.hasAttribute("ID")) {
+									String ID = gr1.getAttribute("ID");
+									ID = idprefix+":"+ID;
+									gr1.setAttribute("ID",ID);
+								}
+								changestyle(gr1,"font-family","ariel, sans-serif");
+								if (gr1.getAttribute("data.type").equals("Substituent")) {
+									changestyle(gr1,"font-size","11pt");
+								}
+							}
+						}
+
+						TransformerFactory transformerFactory = TransformerFactory.newInstance();
+						Transformer transformer = transformerFactory.newTransformer();
+						transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+						transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+
+						DOMSource sourcedoc = new DOMSource(doc);
+
+						FileWriter outputfilewriter = new FileWriter(outFile);
+						StreamResult outputfilestream = new StreamResult(outputfilewriter);
+
+						transformer.transform(sourcedoc, outputfilestream);
+
+						outputfilewriter.close();
+
+						System.out.println(args[i]+" -> "+outputfile);
+
+					} else {
+						throw new IllegalArgumentException("Image format " + imagefmt + " is not supported");
+					}
 				}
-			    }			   
-			    if (!idprefix.equals("") && gr1.hasAttribute("ID")) {
-				String ID = gr1.getAttribute("ID");
-				ID = idprefix+":"+ID;
-				gr1.setAttribute("ID",ID);
-			    }
-			    changestyle(gr1,"font-family","ariel, sans-serif");
-			    if (gr1.getAttribute("data.type").equals("Substituent")) {
-				changestyle(gr1,"font-size","11pt");
-			    }
-			}
-		    }
 
-		    TransformerFactory transformerFactory = TransformerFactory.newInstance();
-		    Transformer transformer = transformerFactory.newTransformer();
-		    transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-		    transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
-
-		    DOMSource sourcedoc = new DOMSource(doc);
-		    
-                    FileWriter outputfilewriter = new FileWriter(outFile);
-		    StreamResult outputfilestream = new StreamResult(outputfilewriter);
-		    
-		    transformer.transform(sourcedoc, outputfilestream);
-
-                    outputfilewriter.close();
-
-		    System.out.println(args[i]+" -> "+outputfile);
-		
-	    }
-			    else {
-			        throw new IllegalArgumentException("Image format " + imagefmt + " is not supported");
-			    }
-			    }
-
-			}
-			catch (GlycanException ex) {
-				System.out.println(args[i] + ": " + ex.getClass().getSimpleName() + "-" + ex.getMessage());
-                                if (excep) {
-                                  throw ex;
-                                }
-			}
-			catch (Exception ex) {
+			} catch (GlycanException ex) {
+				System.out.println(args[i] + ": " + ex.getMessage());
+				if (excep) {
+					throw ex;
+				}
+			} catch (NullPointerException ex) {
 				System.out.println(args[i] + ": " + ex.getClass().getSimpleName());
-                                if (excep) {
-                                  throw ex;
-                                }
-			}
-			catch (java.lang.Error ex) {
+				// ex.printStackTrace();
+				if (excep) {
+					throw ex;
+				}
+			} catch (Exception ex) {
 				System.out.println(args[i] + ": " + ex.getClass().getSimpleName());
-                                if (excep) {
-                                  throw ex;
-                                }
+				if (excep) {
+					throw ex;
+				}
+			} catch (java.lang.Error ex) {
+				System.out.println(args[i] + ": " + ex.getClass().getSimpleName());
+				if (excep) {
+					throw ex;
+				}
 			}
 
 			outFile = "";
