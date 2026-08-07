@@ -98,9 +98,15 @@ public class WURCSSequence2ToGlycan {
 	}
 
 	private void analyzeGRES(GRES _gres) throws Exception {
-		GRESToResidue gres2residue = new GRESToResidue();
-
-		gres2residue.start(_gres);
+		GRESToResidue gres2residue;
+		try {
+			gres2residue = new GRESToResidue();
+			gres2residue.start(_gres);
+		} catch (NullPointerException ex) {
+			throw new Exception("Failed to convert residue: " + _gres.getMS().getString());
+		} catch (Exception ex) { // to catch GlycanError
+			throw new Exception("Failed to convert residue: " + _gres.getMS().getString());
+		}
 		Residue residue = gres2residue.getResidue();
 		this.gres2residue.put(_gres, residue);
 
@@ -133,8 +139,13 @@ public class WURCSSequence2ToGlycan {
 				this.gres2residue.get(glin2linkage.getParents().get(0)) : null;
 		Residue start = this.gres2residue.get(glin2linkage.getStartRepeatingGRES());
 
-		LinkageConnector linkageConnector = new LinkageConnector(donor, acceptor, start);
-		linkageConnector.start(glin2linkage);
+		LinkageConnector linkageConnector;
+		try {
+			linkageConnector = new LinkageConnector(donor, acceptor, start);
+			linkageConnector.start(glin2linkage);
+		} catch (NullPointerException ex) {
+			throw new Exception("Failed to connect linkage");
+		}
 
 		// set parents for fragments
 		if(glin2linkage.getParents().size() > 1) {
