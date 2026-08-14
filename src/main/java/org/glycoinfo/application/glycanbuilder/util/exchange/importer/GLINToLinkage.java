@@ -200,7 +200,7 @@ public class GLINToLinkage {
 				linkage = new Linkage(null, a_oSUB, a_caPositions);
 				this.acceptorLinkages.add(linkage);
 			} catch (Exception e) {
-				throw new RuntimeException(e.getMessage());
+				e.printStackTrace();
 			}
 		}
 
