@@ -20,6 +20,8 @@
 
 package org.eurocarbdb.application.glycanbuilder.converterGWS;
 
+import org.glycoinfo.application.glycanbuilder.converterWURCS2.LinkageTypeOptimizer;
+
 import java.awt.Rectangle;
 import java.util.*;
 import java.util.regex.*;
@@ -58,7 +60,9 @@ public class GWSParser implements GlycanParser {
 
 		String start_repeat_str = "\\[";
 		String end_repeat_str = "](?:_(-?[0-9]+))?+(?:\\^(-?[0-9]+))?+";
-		String residue_str = "([abo?][1-9N?])?+([DL]-)?+([a-zA-z0-9_#=.]+)(?:,([?opf]))?+";
+		// Ring forms: pyranose, furanose, alditol and the open chain, which a residue can be set to
+		// through setRingSize and which this used to write without being able to read back.
+		String residue_str = "([abo?][1-9N?])?+([DL]-)?+([a-zA-z0-9_#=.]+)(?:,([?opfa]))?+";
 		String cleaved_str = "/([a-zA-z0-9_#]+)";
 		String place_str = "@(-?[0-9]+s?)";
 		String cord_str="<bounding_box>([0-9]+),([0-9]+),([0-9]+),([0-9]+)</bounding_box>";
@@ -188,6 +192,29 @@ public class GWSParser implements GlycanParser {
 					false,mass_opt);        
 		}    
 
+		// The reducing end's type implies the sugar's form: redEnd and every reductive-amination
+		// label reduce their sugar, leaving it acyclic. A file saved since the ring letter began
+		// carrying that fact says ",o" and needs nothing here; one saved before 1.30.0 - or written
+		// by hand - says ",p", and reading it back turned the alditol into a ring again, quietly:
+		// the WURCS reverted from [h2122h] to a cyclic residue and the mass lost the reduction's
+		// two hydrogens (#133). This is setReducingEndType's own rule, applied on the way in.
+		Residue root = ret.getRoot();
+		if( root!=null && root.isReducingEnd() && !root.isCleavage()
+				&& root.getNoChildren()>0 && root.getType().makesAlditol() ) {
+			Residue sugar = root.getChildAt(0);
+			if( sugar.isSaccharide() && !sugar.isAlditol() ) {
+				sugar.setAnomericState('?');
+				sugar.setRingSize('o');
+			}
+		}
+
+		// Say what each bond is made of, rather than leaving every one of them UNVALIDATED (#4).
+		// A structure read from WURCS has its linkage types worked out; one read from GWS did not,
+		// so the same glycan carried different bonds depending on which format it arrived in, and
+		// anything that reads a linkage type - an exporter, a renderer - was reading a placeholder.
+		// The same pass the WURCS writer runs is applied here, on the way in.
+		new LinkageTypeOptimizer().start(ret);
+
 		return ret;
 	}
 
@@ -232,6 +259,19 @@ public class GWSParser implements GlycanParser {
 	}
 
 	static public String writeSubtree(Residue r, boolean ordered, BBoxManager bboxManager ) {
+		return writeSubtree(r, ordered, bboxManager,
+				java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<Residue, Boolean>()));
+	}
+
+	static private String writeSubtree(Residue r, boolean ordered, BBoxManager bboxManager,
+			java.util.Set<Residue> visited) {
+		// The walk below assumes a tree. Hand it a cyclic graph - which a faulty import can build -
+		// and it used to descend forever, dying as a StackOverflowError far from the cause (#125).
+		// GWS has no spelling for a residue that is its own ancestor, so this says so instead.
+		if (!visited.add(r))
+			throw new IllegalArgumentException("the structure contains a cycle"
+					+ " (a residue reachable from itself), which GWS cannot write");
+
 		//------------
 		// write typ
 		String str = writeResidueType(r);    
@@ -255,15 +295,25 @@ public class GWSParser implements GlycanParser {
 		//-----------------
 		// write children
 
+		// A composition carries a marker saying that no linkages among its members are known. It
+		// is a label, not a residue, and GWS has no spelling for it: written out like a child it
+		// became "--?no glycosidic linkages", where the parser reads everything after "--?" as a
+		// linkage, meets a sentence and stops - so a composition's own GWS could not be read back
+		// (#162). It is left out here, as it is left out of the drawing and of the mass.
 		ArrayList<String> str_children = new ArrayList();
-		for( Linkage l : r.getChildrenLinkages() )
-			str_children.add(writeSubtree(l,ordered, bboxManager));
+		for( Linkage l : r.getChildrenLinkages() ) {
+			if( l.getChildResidue()!=null && l.getChildResidue().isCompositionMarker() )
+				continue;
+			str_children.add("--" + toStringLinkage(l)
+					+ writeSubtree(l.getChildResidue(), ordered, bboxManager, visited));
+		}
 
 		if( ordered ) 
 			Collections.sort(str_children);    
 
-		// add parenthesis    
-		for( int i=0; i<r.getChildrenLinkages().size()-1; i++ ) 
+		// add parenthesis - one fewer than the children actually written, which is not necessarily
+		// how many the residue has
+		for( int i=0; i<str_children.size()-1; i++ ) 
 			str += "(";       
 
 		// write children

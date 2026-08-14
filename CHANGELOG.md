@@ -1,4 +1,447 @@
 ## Change log
+### 1.38.0  (20260815)
+The tracker was re-checked against the code first, and the gap between them turned out to be the largest
+thing on the list: nine issues were marked fixed and still open, and two faults that had been measured
+were filed nowhere. Those were dealt with before any code was written, and the release is what came out
+of the reordering.
+* **An m/z weighs its adduct the way it weighed the structure** (#203). 1.36.0 brought the neutral mass
+  under `MassOptions.ISOTOPE` and stopped at the ions, so an average neutral mass could arrive carrying a
+  monoisotopic adduct - a figure that is neither, and plausible at every digit anyone would check
+  * `IonCloud` captured an adduct's mass when the ion was *set*, which is always the monoisotopic
+    figure, and `computeMZ` only added the total it had been handed. The adduct was decided before
+    anything knew which table the answer wanted
+  * **Nil for sodium, +0.135 per potassium, +0.484 per chloride, and negative for lithium**, since ⁷Li is
+    the monoisotopic mass while ⁶Li pulls the average below it. The test is written on potassium and
+    chloride for that reason: sodium has one stable isotope, so a sodiated m/z - the default - was right
+    by accident throughout, and a test on it would have passed before the fix. Sodium is in there as the
+    control that says so
+  * A charge added with an explicit mass, a neutral exchange, keeps the mass it was given. There is no
+    second figure for it and inventing one would be worse
+* **A repeat unit keeps the position it closes on** (#204). `l1-m3~n` was read in and written back as
+  `l?-m3~n`, while every other linkage in the sequence survived
+  * `?` is not a rounding of `1`. It is the sequence saying the position is unknown, about a position the
+    input had stated, so the export said less than the import did and said it in a form that looks
+    deliberate
+  * Dropped on the way in, and one line. `addChild` rebuilds a linkage from its bonds and ends by taking
+    the child's own anomeric carbon; the closing repeat marker is created fresh and has none, so the `?`
+    it was born with was written over the position that had just been worked out. The opening marker was
+    always given its position before being added - only the closing side was missing that, which is why
+    one end of a repeat survived and the other did not
+* **Branches are drawn in the numeric order of their linkage positions** (#29), so a bisecting GlcNAc at
+  4 sits between the 3- and 6-antennae rather than above both of them
+  * Every ordinary monosaccharide is placed straight out: the placement rules that pick a side from the
+    position apply to substituents - `(!cs)` reads "child is not a monosaccharide" - so a saccharide
+    child falls through to the catch-all, in the SNFG and CFG dictionaries alike. All of a residue's
+    branches therefore arrive in one region and were stacked in the order the children happened to be
+    stored. Attaching one to a finished core appended it, so it was stacked last, which is the far edge
+  * That is why the report is phrased as "if you add it after drawing": the same molecule imported from a
+    sequence drew correctly, because the sequence listed the children differently
+  * Ascending, in all four orientations - which is what three of the four were already doing for a plain
+    biantennary core, so a middle branch moves into place and nothing already right moves at all.
+    Measured, default orientation: 6-antenna at y=30, bisecting GlcNAc at y=82 level with its β-Man,
+    3-antenna at y=134, which is the arrangement DrawGlycan-SNFG gives
+  * An unknown position sorts last and keeps the order it came in. There is nothing to compare it with
+* **A failed export says so once** (#183). The export wrote every structure for the file and then wrote
+  them all again to find which had come out empty, and one failure is already two windows - the message,
+  then the stack - so the second pass produced a second pair
+  * **The sequence in the report no longer fails.** `WURCS=2.0/1,1,0/[A111h]/1/` writes back unchanged, so
+    those steps produce no dialogs at all now. The doubling was still there to be read, and would have
+    doubled the next failure, so it is fixed rather than closed as not-reproducible
+* **A bridge's label has the same room on every side** (#88). The area cleared behind it was the glyphs'
+  bounds cast to `int`, which truncates the origin one way and the width the other
+* **The CFG hat diamonds no longer take an angle they never used** (#83). Removing it does not answer
+  whether the symbol looks wrong, which is what the reporter was asked; it removes a parameter that
+  claimed to matter and did not
+* `TRIAGE.md` carries the order the work was taken in and why, and
+  `docs/linkage-positions-and-anomers.md` corrects what the placement dictionaries actually say - both
+  rules are about substituents, not saccharides. The earlier, wrong reading is recorded rather than
+  removed, because it is the kind of mistake that document exists to stop
+
+### 1.37.0  (20260814)
+Everything at the top of the triage list, in both bands: a wrong answer nobody can see is wrong, and
+work that quietly disappears.
+* **The same linkage position could be given to two children** - a Man with two branches both at 4,
+  which is not a molecule. It draws, and the WURCS export then writes nothing, which is how it was
+  usually noticed (#34)
+  * The linkage dialog had learned to filter its list in 2021 and the model had not, so a structure
+    drawn through the dialog obeyed rules a structure built any other way did not
+  * The rule is about the carbon rather than about what hangs off it: a methyl at 4 and a branch at 4
+    are the same claim on the same atom
+* **All the rules about which positions take a linkage are in the model now**, and the dialog shows
+  what they say rather than working it out again
+  * **The residue type's list** knows what the sugar is made of - GlcNAc omits 2 for its N-acetyl,
+    Xyl has no 6 - and whether a built-in substituent closes its position is a chemical judgement made
+    per residue rather than a rule to be derived. GlcA keeps 6 open, because a carboxyl can be
+    esterified. 47 of the 134 types declare no list at all, and no list means no constraint
+  * **The ring** occupies a position: 5 or 6 for a pyranose, 4 or 5 for a furanose, depending on where
+    the anomeric centre is. An open chain closes nothing
+  * **An alditol** has no ring and no anomeric centre, so its 1 is an ordinary hydroxyl and does take
+    a bond
+  * **A bridge is exempt, deliberately.** It may attach at the anomeric carbon, which no list offers,
+    and 1,6-anhydro does - enforcing the list against it stopped that structure round-tripping, which
+    is how the exemption was found
+  * `docs/linkage-positions-and-anomers.md` writes all of this down, chemistry and attribution
+    included, because reading the code says what it does rather than whether that is right
+* **An anomeric configuration is no longer drawn where there is no anomeric centre.** An alditol or an
+  open-chain form has nothing for α or β to describe; drawing one states something untrue, and drawing
+  "?" would say it is unknown when it is absent
+* **An exported picture brings no background with it** (#186, #188)
+  * PNG carries an alpha channel and the renderer could always paint without a background - the export
+    simply never asked, passing opaque for every format alike. BMP and JPEG keep theirs, having
+    nowhere to write transparency
+  * SVG was worse than one rectangle: the renderers clear behind text so it stays legible over a bond
+    line, and `clearRect` on an SVG surface paints the background colour rather than removing
+    anything, so every character carried its own white patch. Measured, white rectangles 9 to 0, with
+    the residues' colours held by a test of their own - the way to pass "no white" is to stop painting
+* **Three ways a document lost what was in it**
+  * Closing a saved file asked where to put it, the prompt calling Save As outright for a document
+    whose filename was in the title bar (#106)
+  * Merging a file in left the document counted as unchanged - `setFilename` clears the changed flag
+    as a side effect - so no asterisk appeared, Save stayed disabled, and closing threw the merge away
+    without asking. It took the merged file's name too, which would have made a later Save write over
+    a file nobody had edited (#178)
+  * An imported sequence inherited the reducing end last chosen in the dialog, which with "Remember
+    files after restarting" outlived the session: a WURCS that named no aglycone arrived carrying
+    somebody's -Asn from a previous sitting (#179)
+* **A failed vector export says so** rather than writing a 0-byte file (#185). The underlying failure
+  was reported on Windows and does not reproduce here, so this fixes the silence rather than the cause
+* #67, #150 and #158 were found already fixed while the list was being reproduced, and are closed with
+  the measurements. #66 does not reproduce either and awaits a retest
+
+### 1.36.0  (20260814)
+The first pass of a triaged issue list, and the four things at the top of it. Reproducing the list
+first found three issues already fixed and still open (#67, #150, #158), now closed with the
+measurements, and one half fixed (#125).
+* **Two monosaccharides were drawn as the same symbol.** CFG tells Tal from All, Tag from Psi and
+  TalNAc from AllNAc by the pattern inside the symbol and by nothing else, and the renderer had a
+  case for neither `v_stripes` nor `h_stripes` - so the fill fell through every branch and nothing
+  was painted inside the outline (#132)
+  * Three bars with two gaps, clipped to the symbol's own outline, so a circle gets stripes with
+    circular ends and a square gets square ones
+  * The test asserts the drawn image rather than the shape returned - a fill that is right and then
+    clipped away is still a blank symbol - and asserts that the stripes exist *separately* from the
+    pair differing, since Tal is green and All is blue and a comparison of the two passes the moment
+    the colours do
+* **A composition can be exported to WURCS** (#107). It used to write an empty file: the ordinary
+  encoder cannot express a composition, there being no linkages to encode, and nothing was put in
+  its place
+  * Composition WURCS is that place - it names the residues and says nothing is known about what
+    joins them, and it is what GlyTouCan and GlyCosmos match a composition against
+  * **Nothing in this decides the order residues appear in.** For Hex₅HexNAc₄Neu5Ac₂dHex₁ the
+    canonical order is Neu5Ac, dHex, HexNAc, Hex - neither alphabetical, nor by count, nor the order
+    counted in. The composition is built as unconnected nodes and handed to the same
+    `SugarToWURCSGraph`/`WURCSFactory` path every other WURCS takes, and the normalizer decides. A
+    WURCS that is correct but not canonical matches nothing in a database and looks right while
+    failing, so re-deriving that ordering was avoided rather than attempted
+  * The approach [glycompconverter](https://gitlab.com/glycoinfo/glycompconverter) takes,
+    reimplemented against libraries this project already depends on - **no new dependency**. Split so
+    it can be lifted out later: `CompositionToWURCS` and `CompositionResidue` know nothing of
+    GlycanBuilder2, and `GlycanComposition` is the whole of what does
+  * The expected strings in the test are that implementation's, pinned residue by residue - twelve
+    of them, all matching
+* **`MassOptions.ISOTOPE` is read** (#127). It could be set to `AVG`, the Mass options dialog offered
+  it, and nothing looked at it: every mass came from the monoisotopic figure, while each residue had
+  carried its average mass alongside all along
+  * The choice now reaches the residues, the water taken off per bond, an alditol's hydrogens and the
+    derivatization. All of it or none: residues from the average table with methyls from the
+    monoisotopic one would give a figure that is neither, and plausible at every digit that matters
+  * Measured against literature rather than against itself - glucose 180.156, Man₃GlcNAc₂ 910.82 -
+    and the monoisotopic answers are unchanged, which is the half that matters more
+  * **Still monoisotopic: the ion adducts.** `IonCloud` fixes an ion's mass when the ion is set
+    rather than when the mass is computed, so an m/z built on an average neutral mass carries a
+    monoisotopic adduct
+* **A failed vector export says so** (#185). The transcoders report a failure by logging it and
+  returning null, and that null was written - so a PDF or EPS that could not be made arrived as a
+  0-byte file with no message, which looks like a successful export of an empty picture
+  * The failure itself was reported on Windows and does not reproduce here: with the pinned batik
+    1.19 and fop 2.11 all five formats write on macOS. This fixes the silence rather than the cause
+* `TRIAGE.md` records what to work on next and, more usefully, how that is decided - by what a wrong
+  answer costs the person receiving it, with silence outranking severity and a verified claim
+  outranking a plausible one
+
+### 1.35.2  (20260812)
+* **A sequence could make the parser go and fetch what it named.** Three of the formats the library
+  accepts are XML - `glycoct_xml`, `cabosml`, `glyde` - and JDOM's `SAXBuilder` reads them, resolving
+  external entities as it meets them. A document declaring an entity with a `SYSTEM` identifier
+  therefore had the process open whatever that pointed at, mid-parse (CVE-2021-33813)
+  * Measured through the public entry point: `importFromString(document, "glycoct_xml")` opened a
+    `file://` path the document chose, by way of `SugarImporterGlycoCT.parse` ->
+    `XMLEntityManager.startEntity` -> `FileURLConnection.getInputStream`. Whoever supplied a sequence
+    decided what was read and what was connected to - which anywhere sequences arrive from outside,
+    a server most of all, is the whole of it
+  * **There is no version to move to.** The advisory's fix is `org.jdom:jdom2:2.0.6.1`, and
+    MolecularFramework and resourcesdb are compiled against `org.jdom` - a different package - so the
+    coordinate in use has no patched version at all and a dependency bump cannot reach it. Getting
+    off it is filed as #175
+  * The document type declaration is refused before the parser sees it. A DTD is the only way to
+    declare an entity and the specification spells the declaration exactly one way, so this leaves no
+    other route to one
+  * **Reading and writing the XML formats is unaffected.** Only a document carrying a declaration is
+    refused, and the library's own output carries none: measured, GlycoCT XML and Glyde II both write
+    and read back unchanged, as does GlycoCT condensed. Nothing was added to the writing side
+  * The test asserts that nothing is fetched rather than that the read failed - a read can fail on its
+    own account long after the parser has been off to collect what it was pointed at. A server is put
+    on loopback where the document points and the assertion is that it is never called
+
+### 1.35.1  (20260812)
+* **Check for Updates could not reach GitHub from an installed copy**, reporting a
+  `handshake_failure` while a browser on the same machine loaded the same page. The runtime image
+  the installers ship is built by `jlink` from a named list of modules, and `jdk.crypto.ec` was not
+  on it - so the runtime offered no elliptic-curve suites, GitHub accepts nothing else, and the TLS
+  handshake was refused before any request was sent. GitHub was reachable throughout; the two could
+  not agree on encryption
+  * Reproduced by removing the module on JDK 17 and 21.0.12 and confirmed absent on a full JDK,
+    which is why this was not seen while the feature was being written - it was only ever exercised
+    on a development JDK, never on the runtime that is actually shipped
+  * Added to all four installer builds, so macOS, Linux, RPM and Windows images can each speak TLS
+  * Anything else the installers do over HTTPS was affected the same way, not only the update check
+* A failure now says *which* failure it was. Everything was reported as being unable to reach
+  GitHub, which was wrong for the one that actually happened - someone told that checks a network
+  that is working. A refused handshake, an unresolvable host and a timeout are told apart, and the
+  handshake case says in as many words that it is not a network problem
+* The workflows run on Node 24. GitHub has deprecated the Node 20 action runtime and warns on every
+  run; the actions in use publish Node 24 majors, so each was moved to one
+
+### 1.35.0  (20260812)
+* Added **Help > Check for Updates**, so a macOS or Linux copy can find out that a newer one exists
+  * Windows has the Microsoft Store for this; macOS and Linux are installed from files people
+    download, and nothing told them
+  * **Nothing checks on its own.** No outbound call is made unless the menu item is chosen, so
+    startup is untouched - offline, behind a proxy, or with GitHub down, the application starts
+    exactly as before - and whether to talk to GitHub stays the user's choice
+  * It reads the redirect rather than the API: `api.github.com` allows 60 unauthenticated requests
+    an hour *per address*, and an institute behind one NAT is one address, while
+    `github.com/.../releases/latest` answers 302 to the tag's page and is not limited that way. It
+    also excludes pre-releases, which fits how this project releases - the workflow publishes as a
+    pre-release until someone marks it Latest, so no one is pointed at a release whose installers
+    are not built yet
+  * Where it sends people depends on where their builds are: **Windows** the Microsoft Store (the
+    releases carry no Windows installer at all), **macOS**
+    [glycanbuilder.glyconavi.org](https://glycanbuilder.glyconavi.org/en#download), **Linux** the
+    release's own assets, and anything else - a jar run directly, a build from source - the releases
+    page
+  * Versions are compared part by numeric part. As text "1.34.10" sorts before "1.34.9", so a text
+    comparison would stop reporting updates the moment a version reached double digits, quietly and
+    only then. What cannot be compared is not announced, and a check that could not reach GitHub
+    says so rather than reporting that the application is up to date
+  * Measured against the live service: 476 ms to answer, 136 ms to fail and say why with the network
+    blocked
+* **The About window showed the wrong icon.** It carried the 2021 "GB2" wordmark while the dock, the
+  installers and the Store showed the current one - two files that had drifted since the icons were
+  replaced. It references `icons/icon_large.png` now rather than carrying a copy: that is the file
+  jpackage builds every installer's icon from, so replacing it replaces this too
+* **The About window's links did nothing when clicked.** A `JEditorPane` reports a click and leaves
+  following it to whoever is listening, and nothing was: `addHyperlinkListener` is called nowhere in
+  this application. They open now, through the same code the update check uses - including its
+  fallback of showing the address where the desktop cannot open a browser
+* The paper is cited by its DOI, [10.1016/j.carres.2017.04.015](https://doi.org/10.1016/j.carres.2017.04.015),
+  rather than by a publisher URL - the identifier the article keeps wherever it is hosted. Confirmed
+  against CrossRef to be the same article: it resolves to the PII the direct link named
+
+### 1.34.3  (20260812)
+* Took the derivatization off a composition's implicit bonds, so a derivatized composition weighs
+  what the same glycan written with its linkages weighs (#165)
+  * A glycosidic bond consumes a hydroxyl that would otherwise carry a derivatization group. The
+    bracket's composition branch took the **water** off for the N-1 implicit bonds; nothing took the
+    matching derivatization off, and the members - attached to the bracket rather than to one
+    another - were derivatized as though they were free
+  * Underivatized the two routes had agreed since 1.34.1, which is why this went unseen.
+    Permethylated, Hex3HexNAc2 read **1190.6408** against **1148.5938**, three CH2 too many;
+    peracetylated, 1666.5179 against 1540.4863. Permethylation is the ordinary preparation in MS
+    glycomics, so this was the common case rather than a corner
+  * Measured for N = 2..7, straight and branched alike: the excess is N-2 groups, one fewer than the
+    N-1 whose water is subtracted - the remaining one is already accounted for, the root of a
+    composition returning before it adds its own adjustment
+  * That the linked figure is the right one is checkable independently: permethylated Man3GlcNAc2 as
+    [M+Na]+ is 1171.58 in the literature and 1171.5836 here, and adding one Hex must add exactly one
+    permethylated Hex residue, 204.0998 - which the linked series does and the composition series did
+    not, stepping by 218.1154. The test asserts the increment, so it holds without a remembered total
+  * Verified across every combination the mass options offer, composition against linked, all
+    agreeing to 1e-6: six derivatizations, seven ion adducts at one to three charges, four neutral
+    exchanges, and those crossed with each other
+
+### 1.34.2  (20260812)
+* Wrote a composition's GWS so it can be read back (#162)
+  * A composition imported from WURCS wrote `--?no glycosidic linkages` where a linkage belongs -
+    the marker it carries to say that no linkages are known, written out as though it were a child.
+    The parser reads everything after `--?` as a linkage, met a sentence and stopped with
+    *invalid format for linkage: " glycosidic linkages"*, so a composition could not be moved
+    between the two formats the application itself uses
+  * The marker is left out of what is written, as it is left out of the drawing and of the mass.
+    The parenthesis count follows the children actually written rather than how many the residue
+    has, which stops being the same number once one is skipped
+  * Measured: a composition's GWS no longer carries the marker, parses back, and weighs the same
+    on the way back - 910.3278 for Hex3HexNAc2
+* Gave the marker a name of its own: `Residue#isCompositionMarker()`, with the description it
+  matches as `Residue.NO_GLYCOSIDIC_LINKAGES`
+  * The same string comparison had grown separately in the renderers (eight places) and the mass
+    calculation, and **each place that had not grown one was a fault** - the mass read a water and
+    a derivatization group light (1.34.1), and the writer could not be read back (this release).
+    All ten places now ask the residue
+
+### 1.34.1  (20260812)
+* Stopped weighing a marker that is not a residue, so a composition read from WURCS weighs what
+  the composition dialog says it does
+  * `WURCSSequence2ToGlycan` hangs a synthetic "no glycosidic linkages" marker off a composition's
+    bracket to record that no linkages are known. The renderers have always skipped it -
+    `AbstractGlycanRenderer` tests for that description in four places - but `computeMass` had not
+    been told about it, and counted it twice
+  * Once among the bracket's members, where N members imply N-1 glycosidic bonds: six were assumed
+    where there are five, and one water too many came off. Measured, `childrenLinkages.size()` is 6
+    for Hex3HexNAc2
+  * Once as an ordinary residue, where it collected `(noSubstitutions - no_bonds) *
+    substitutionMass` for its single bond to the bracket - nothing underivatized, a whole methyl or
+    acetyl group otherwise, which is why the shortfall grew with derivatization
+  * Hex3HexNAc2 read **892.3172** where the composition dialog reads **910.3278**, the Man3GlcNAc2
+    figure. The two routes now agree to 1e-6 underivatized, permethylated, peracetylated and
+    per-deuteromethylated
+  * The arithmetic the 1.33.0 composition fix intended is unchanged: sum the members, take off N-1
+    waters for the bonds they imply. Only the counting is corrected
+  * Found while writing a mass-spectrometry example against glycanbuilder2web's MCP interface,
+    where WURCS is the only way a caller can express a composition (#160)
+* Wrote the release process down in the README, where the next person will look (#159)
+
+### 1.34.0  (20260810)
+* Gave an antenna one parent when reading WURCS, so it is no longer drawn outside its own
+  picture (#71)
+  * An antenna names the residues it may hang from and is drawn from the bracket; G42735RP names
+    three and the reader, having no way to choose, linked the residue to the first and then made
+    it a child of the bracket as well - two parents at once, which no tree can hold
+  * Everything that walks the structure then met it twice: the renderer laid the sialic acid out
+    under the bracket and translated it a second time along with the other parent's subtree,
+    leaving it outside the box the renderer had reported and cut off by the edge of the image
+  * The writers said it twice too - G42735RP went in as 7,13,12 and came back out of WURCS as
+    8,14,13+, with a NeuAc carrying its N-acetyl twice
+  * Measured on the 107 WURCS strings in the test sources: only G42735RP differs
+* Read an antenna written the other way round by role (#150)
+  * WURCS writes the two sides of a linkage in whichever order puts the residue linking through
+    its anomeric carbon on the donor side; G42735RP says m1-f?|i?|k?, position 1 on a residue
+    whose anomeric carbon is 2, and is parsed the other way round
+  * Read as though the sides meant the usual thing, the antenna's own 1 was taken for the
+    position on each candidate: the structure was drawn as 1-linked to its galactoses and written
+    back as m2-f1|i1|k1, stating a definite position where the sequence said it was unknown
+  * The same reading left a candidate residue with two parents, dropping it from the structure,
+    and could hand LinkageConnector a null acceptor - G00955WX written that way did not import
+  * G42735RP now draws byte for byte the picture its well-formed twin draws
+* Drew a composition whether or not the reducing-end marker is shown (#153)
+  * A composition has no residue privileged as the reducing end, and the renderer laid it out
+    from the residue past that marker - nothing at all - so asking for one without the marker
+    gave a blank 1x1 image, or a NullPointerException from the legend measuring a box that had
+    never been computed
+  * Whether the marker is drawn is a display preference; whether the composition is drawn no
+    longer follows it
+* Moved batik to 1.19 and fop to 2.11, together (#144)
+  * batik 1.9 carries the SSRF and remote-class-loading run fixed later in the 1.x line -
+    CVE-2019-17566, CVE-2020-11987 and the 2022 group including CVE-2022-44729 - and both
+    libraries travel to every consumer
+  * They cannot move apart: fop is built against one batik family and mixing them fails at
+    runtime rather than at build time, so the pair comes from fop-parent's own batik.version
+  * Verified past the test suite: the desktop application starts on the new pair, and
+    glycanbuilder2web builds, runs and exports every format the library offers - PDF, PS, EPS,
+    PNG, JPG, BMP, SVG
+* Declared each plugin once, and each version
+  * maven-deploy-plugin was declared twice and exec-maven-plugin had no version, both of which
+    Maven warned about on every build, the first adding that future versions might no longer
+    accept such a build; jdom was asked for by its pre-relocation coordinates
+  * The effective pom and the resolved dependency list are unchanged - the build simply stopped
+    warning
+### 1.33.0  (20260810)
+* Wrote the configuration where the user may write, so the application starts on Windows (#10)
+  * A first run saved it to the path it had just tried to read it from - normally the bundled
+    resource "/config.xml" - so the write went to whatever that name resolves to on disk: the
+    working directory of whatever launched the application, which from the Windows start menu is
+    C:\WINDOWS\system32, where it is denied and nothing starts
+  * It saves to the per-user location the workspace already knew about, creating the directory
+  * Opening a configuration that is neither a file nor a resource now answers no, instead of
+    falling back to src/main/resources/config.xml - a build-tree path absent from every
+    distributed jar, so the fallback could only ever throw on a first run
+* Gave a glycosidic bond its linkage types, on every route in (#4)
+  * The pass that works them out had no branch for an ordinary sugar-sugar bond at all, only for
+    substituents and bridges, so every glycosidic linkage stayed UNVALIDATED: the donor gives up
+    the OH at its anomeric centre (DEOXY), the acceptor keeps the oxygen (H_AT_OH)
+  * And it ran in one place, the WURCS writer, so a structure carried placeholders until the
+    moment it was written back - all three readers run it now, and GWS, WURCS and GlycoCT agree
+  * Nothing written out changes: seven structures were exported to all three formats before and
+    after, byte-identical, which is what stating a type in the model had to agree with
+* Kept an antenna's parents when reading GlycoCT, so a glycan is drawn the same whichever
+  sequence it arrived as (#62)
+  * GlycoCT states them in the UND section's ParentIDs and the reader dropped them, so an antenna
+    knew of no parents; the renderer asks exactly that when it decides whether to draw a link
+    towards the bracket, and G00955WX came out with the link from WURCS and without it from
+    GlycoCT
+  * Measured on G00955WX: eleven parents on both routes now, and the two SVGs identical
+* Said what has to be true of any layout, before changing one (groundwork for #58 and #71)
+  * Every residue lies within the bounding box the renderer reports, and no two share a spot -
+    properties that hold whatever the layout looks like, so an improvement passes them and a
+    mistake does not, where a frozen SVG would fail on both
+  * Nine structures hold them; G42735RP of #71 does not, and its test says so, failing the day
+    #71 is fixed
+### 1.32.0  (20260809)
+* Wrote structures with bridges to GlycoCT, which had exported as an empty string
+  * The bridge went to the namescheme converter decorated like a sugar - "?-P", which nothing
+    could resolve - and undecorated it resolved to a substituent whose exchange table only knows
+    the single-attachment form
+  * Bridges are now typed substituent nodes in GlycoCT's own vocabulary, both attachments at 1,
+    and the sugar's side of each bond typed by the atom the bridge attaches through - oxygen
+    keeps the sugar's OH (o), nitrogen and sulfur replace it (d)
+  * P, S, SH, N, Suc and PyrP round-trip through the GlycoCT reader; NS, PEtn and PPEtn attach
+    through two different atoms whose sides the model does not record, so they still refuse
+    rather than guess
+* Refused a cyclic structure graph with a sentence, not a StackOverflowError
+  * A WURCS with two connections between the same residues - G11127BT's bridge plus a direct
+    bond - became a genuine cycle, and the first tree walk to touch it descended forever
+  * The importer refuses the cycle before the document sees it, and the GWS writer guards
+    itself against any cyclic graph arriving another way
+* Failed in WURCS terms, not in Java's
+  * A conversion failure was a raw NullPointerException or StringIndexOutOfBounds, naming
+    nothing; it is now a WURCSToGlycanException saying what failed on which sequence, with the
+    original chained underneath - failures that already speak pass through untouched
+  * Fourteen printStackTrace calls in the conversion and model classes go through LogUtils now,
+    so they answer to the logging configuration
+* Moved FOP off CVE-2017-5661 (an XXE in its readers) to 2.2, with the batik 1.9 family it was
+  built against - bumping fop alone fails at runtime on the first PDF export, so PDF, PS and EPS
+  are now each transcoded in a test and checked for the magic bytes of the format they claim to be
+### 1.31.0  (20260809)
+* Read the alditol back from the reducing end's type when loading GWS
+  * Every .gws file saved before 1.30.0 records a reduced end with the ring letter still "p", and
+    loading one turned the alditol into a ring again: the WURCS reverted from h2122h to a cyclic
+    residue, two hydrogens lighter, with nothing said
+  * The rule is setReducingEndType's own, applied on the way in; files that already say "o", free
+    reducing ends and structures with no sugar under the root are left exactly as they are
+* Gave the generic deoxy-HexNAc its missing oxygen
+  * The dictionary said C8H15NO4 where the deoxy form of HexNAc is C8H15NO5, so the generic weighed
+    189.1001 against FucNAc, RhaNAc and QuiNAc at 205.0950 - one oxygen, subtracted twice
+  * A structure drawn with the generic was quietly 15.9949 lighter than the same structure drawn
+    with any specific residue it stands for
+* Attached a substituent's side of its bond at 1 in GlycoCT
+  * The exporter wrote whatever the bond recorded, which for the GAG templates was unknown, so
+    gagheparin exported lines like 1:1d(2+-1)2n and GlyTouCan's graphic search rejected the
+    structure: "for this substituent sulfate linkage pos must be 1"
+  * Substituents only, and only where the bond says unknown - a sugar's attachment really can be
+    unknown, and every core template is now held by test to export no "-1" substituent attachment
+### 1.30.0  (20260808)
+* Wrote a labelled reducing end as itself, where every label wrote what a free reducing end wrote
+  * PA, 2AB, AA and the other eight are reductive aminations, so each leaves its sugar acyclic -
+    only the alditol marker was recorded as doing so
+  * A 2AB glycan weighed 120 Da more than a free one and produced the same WURCS, so two
+    structures registered as one
+  * Which reducing ends reduce is asked of the residue type rather than listed
+* Kept the ring form and the alditol and aldehyde flags saying one thing
+  * Setting the ring form now sets the flags the exporters actually read, so a caller that is not
+    the desktop canvas no longer leaves a residue that says it is acyclic and writes as a ring
+  * A saved alditol came back a ring, and undo, which goes through GWS, quietly un-reduced
+    whatever it touched
+* Stored the open-chain form in GWS, which its ring codes did not include
+  * A structure drawn as an open chain could be saved and then not opened
+* Drew a labelled reducing end on an acyclic sugar
+  * An acyclic sugar suppressed the reducing-end symbol whatever it was, which hid every label
+    once labels were correctly recorded as making their sugar acyclic
+  * A plain alditol still draws none: the sugar's own marker says it
+* Fixed Ctrl+Left navigating down, which it has done since the first commit
+* Fixed cloning a structure built through the API rather than parsed
+  * It has no bracket, which the clone reached through regardless - taking computeMass(String)
+    with it, since that clones before changing the isotope
+
 ### 1.29.0  (20260808)
 * Wrote eleven residues that no WURCS string could be produced for
   * Kdo, Mur, MurNAc, MurNGc, Bac, Dha, Api, and both manno-heptoses

@@ -1,5 +1,6 @@
 package org.glycoinfo.application.glycanbuilder.converterWURCS2;
 
+import org.eurocarbdb.application.glycanbuilder.logutility.LogUtils;
 import org.eurocarbdb.MolecularFramework.sugar.LinkageType;
 import org.eurocarbdb.application.glycanbuilder.Glycan;
 import org.eurocarbdb.application.glycanbuilder.Residue;
@@ -21,7 +22,7 @@ public class LinkageTypeOptimizer {
                     acceptorLinkage.setParentLinkageType(lTypeOnChild);
                     acceptorLinkage.setChildLinkageType(LinkageType.NONMONOSACCHARID);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    LogUtils.report(e);
                 }
             }
 
@@ -40,7 +41,7 @@ public class LinkageTypeOptimizer {
                         acceptorLinkage.setParentLinkageType(LinkageType.H_AT_OH);
                         acceptorLinkage.setChildLinkageType(LinkageType.H_AT_OH);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        LogUtils.report(e);
                     }
                 }
 
@@ -50,7 +51,25 @@ public class LinkageTypeOptimizer {
                         acceptorLinkage.setParentLinkageType(LinkageType.H_AT_OH);
                         acceptorLinkage.setChildLinkageType(LinkageType.H_AT_OH);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        LogUtils.report(e);
+                    }
+                }
+
+                // monosaccharide-monosaccharide: an ordinary glycosidic bond, which had no branch
+                // here at all and so stayed UNVALIDATED however the structure was read (#4). The
+                // donor gives up the OH at its anomeric centre (DEOXY) and the acceptor keeps the
+                // oxygen the bond is made through (H_AT_OH) - which is what the GlycoCT writer had
+                // been assuming for an unvalidated bond all along, writing "1o(4+1)2d". Saying it
+                // in the model rather than at one exporter is the point: every other reader of a
+                // linkage type was reading a placeholder.
+                if (acceptorLinkage.getSubstituent() == null
+                        && acceptorLinkage.getChildResidue().isSaccharide()
+                        && acceptorLinkage.getParentResidue().isSaccharide()) {
+                    try {
+                        acceptorLinkage.setParentLinkageType(LinkageType.H_AT_OH);
+                        acceptorLinkage.setChildLinkageType(LinkageType.DEOXY);
+                    } catch (Exception e) {
+                        LogUtils.report(e);
                     }
                 }
 

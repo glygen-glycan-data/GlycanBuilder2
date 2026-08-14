@@ -45,8 +45,14 @@ public class LinkageConnector {
 			donor.setParentLinkage(_glin2linkage.getStartSideRepLinkage());
 		}
 
-		if(_glin2linkage.getDonorGLINs().isEmpty()) {
+		if(_glin2linkage.getDonorGLINs().isEmpty() || this.acceptor == null) {
 			//　start-rep is root node
+			//
+			// Or there is no residue to attach this one to. A residue named among an antenna's
+			// candidates is a donor of that ambiguous linkage, so it can reach here looking as
+			// though it had a parent, while the reading found no acceptor for it - the reducing
+			// end of G00955WX does, if the antenna is written l1-a?|...|k?. It used to walk into
+			// isOutRepeating and fail on a null acceptor, and the sequence would not read at all.
 			this.analyzeBracketNotation (donor, null, _glin2linkage);
 			return;
 		}
@@ -171,6 +177,17 @@ public class LinkageConnector {
 		a_oEndRep.setParentLinkage(a_oG2L.getEndSideRepLinkage());
 		a_oEndRep.setStartResidue(this.start);
 		a_oRES.setEndRepitionResidue(a_oEndRep);
+
+		/*
+		 * The marker has to carry the position the repeat closes on before it is added as a child
+		 * (#204). addChild rebuilds the linkage from the bonds and finishes by taking the child's own
+		 * anomeric carbon, which for a freshly created marker is '?' - so the position GLINToLinkage
+		 * had just worked out was read back over, and l1-m3~n was written out as l?-m3~n.
+		 *
+		 * makeEdgeWithStartBracket has always done this for the opening marker. Only this side was
+		 * missing it.
+		 */
+		a_oEndRep.setAnomericCarbon(a_oG2L.getEndSideRepLinkage().getAnomericCarbon());
 
 		// sugar->sub->EndRep
 		if(a_oG2L.getEndSideRepLinkage().getChildResidue() != null) {

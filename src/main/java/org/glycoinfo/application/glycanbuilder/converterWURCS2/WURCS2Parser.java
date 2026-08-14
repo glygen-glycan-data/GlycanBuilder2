@@ -1,6 +1,8 @@
 package org.glycoinfo.application.glycanbuilder.converterWURCS2;
 
 import org.eurocarbdb.application.glycanbuilder.Glycan;
+import org.eurocarbdb.application.glycanbuilder.Residue;
+import org.glycoinfo.application.glycanbuilder.util.exchange.WURCSToGlycanException;
 import org.eurocarbdb.application.glycanbuilder.converter.GlycanParser;
 import org.eurocarbdb.application.glycanbuilder.logutility.LogUtils;
 import org.eurocarbdb.application.glycanbuilder.massutil.MassOptions;
@@ -11,6 +13,7 @@ import org.glycoinfo.WURCSFramework.wurcs.graph.WURCSGraph;
 import org.glycoinfo.application.glycanbuilder.dataset.SubstituentMAPDictionary;
 import org.glycoinfo.application.glycanbuilder.util.exchange.exporter.GlycanToWURCSGraph;
 import org.glycoinfo.application.glycanbuilder.util.exchange.importer.WURCSSequence2ToGlycan;
+import org.glycoinfo.application.glycanbuilder.composition.GlycanComposition;
 
 public class WURCS2Parser implements GlycanParser{
 	
@@ -18,7 +21,26 @@ public class WURCS2Parser implements GlycanParser{
 	
 	public String writeGlycan(Glycan structure) {
 		if (structure.isFragment()) return "";
-    if (structure.isComposition()) return "";
+
+		// A composition is written as composition WURCS, which is a different encoding rather than a
+		// worse one: it says which residues are present and that nothing is known about what joins
+		// them, and it is what GlyTouCan and GlyCosmos match a composition against. This used to
+		// return nothing at all, so "export to WURCS" on a composition wrote an empty file and said
+		// why to nobody (#107).
+		if (structure.isComposition()) {
+			try {
+				String composition = GlycanComposition.toWURCS(structure);
+
+				return (composition == null) ? "" : composition;
+			} catch (Exception cannotBeWritten) {
+				// The same silence as before would be worse now that there is something to say, but
+				// this method has nowhere to throw: every caller treats an empty string as "this
+				// structure has no WURCS". Reported where the other converters report.
+				LogUtils.report(cannotBeWritten);
+
+				return "";
+			}
+		}
 
 		try{
 			LinkageTypeOptimizer linkOpt = new LinkageTypeOptimizer();
@@ -42,6 +64,15 @@ public class WURCS2Parser implements GlycanParser{
 		if(str.equals("") || !str.contains("WURCS")) throw new Exception(str + " is wrong format");
 		mass_opt.setDerivatization("Und");
 		mass_opt.ION_CLOUD.set("Na", 0);
+
+		// The sequence says what its reducing end is, and where it says nothing it is a free end.
+		// The mass options handed in carry whatever was last chosen in the dialog, and with
+		// "Remember files after restarting" on that outlives the session - so a structure imported
+		// after a restart arrived carrying somebody's -Asn from a previous sitting, on a sequence
+		// that never mentioned one (#179). Cleared here for the same reason the derivatization and
+		// the ion cloud above are: what the sequence states is the answer, and what it does not
+		// state is a default rather than a leftover.
+		mass_opt.setReducingEndType(org.eurocarbdb.application.glycanbuilder.ResidueType.createFreeReducingEnd());
 		
 		str = str.trim();		
 		if(str.contains("\t")) str = str.substring(str.indexOf("\t") + 1);
@@ -50,9 +81,68 @@ public class WURCS2Parser implements GlycanParser{
 		// whatever spelling the MAPs arrived in, hand the conversion the one it recognises
 		this.rewriteMAPs(graph, false);
 
-		WURCSSequence2ToGlycan seq22glycan = new WURCSSequence2ToGlycan();
-		seq22glycan.start(new WURCSFactory(graph), mass_opt);
-		return seq22glycan.getGlycan();
+		Glycan glycan;
+		try {
+			WURCSSequence2ToGlycan seq22glycan = new WURCSSequence2ToGlycan();
+			seq22glycan.start(new WURCSFactory(graph), mass_opt);
+			glycan = seq22glycan.getGlycan();
+		} catch (RuntimeException undescribed) {
+			// The conversion's own failures come out as raw NullPointerExceptions and
+			// StringIndexOutOfBounds - "String index out of range: 8" for a substituent placed at
+			// position 9 of a hexose, say - which name nothing and read as crashes rather than as
+			// answers (#123). This is the one door every WURCS enters through, so the translation
+			// happens here: what kind of failure, on which sequence, with the original underneath
+			// for whoever needs the trace.
+			throw new WURCSToGlycanException("could not convert this WURCS to a structure ("
+					+ undescribed.getClass().getSimpleName()
+					+ (undescribed.getMessage() != null ? ": " + undescribed.getMessage() : "")
+					+ "): " + shortenedForError(str), undescribed);
+		}
+
+		// A WURCS with two connections between the same pair of residues - a bridge plus a direct
+		// bond, as in G11127BT - comes out of the conversion as a genuine cycle in what every
+		// walker downstream assumes is a tree. The first of them to touch it then descends
+		// forever, and the report is a StackOverflowError far from the cause (#125). Refusing here
+		// with a sentence keeps the document untouched and gives the caller something it can
+		// actually catch; drawing such structures needs a representation for the second
+		// connection, which is its own piece of work.
+		refuseCycles(glycan.getRoot(), java.util.Collections.newSetFromMap(
+				new java.util.IdentityHashMap<Residue, Boolean>()));
+
+		// Say what each bond is made of here, where the structure is built, rather than leaving it
+		// to whoever writes it out (#4). This pass used to run in writeGlycan alone, so a structure
+		// read from WURCS carried UNVALIDATED bonds until the moment it was written back to WURCS -
+		// and anything else that asked, a GlycoCT writer or a renderer, was asking a placeholder.
+		new LinkageTypeOptimizer().start(glycan);
+
+		return glycan;
+	}
+
+	/**
+	 * The sequence, cut to fit an error message.
+	 * @param sequence The WURCS being read.
+	 * @return Returns at most eighty characters of it.
+	 */
+	private static String shortenedForError(String sequence) {
+		String flat = sequence.strip();
+
+		return flat.length() > 80 ? flat.substring(0, 80) + "..." : flat;
+	}
+
+	/**
+	 * Walks the residue tree and throws where it finds itself again.
+	 * @param residue Residue to walk from.
+	 * @param visited Every residue already walked, by identity.
+	 * @throws Exception If the tree has a cycle in it.
+	 */
+	private static void refuseCycles(Residue residue, java.util.Set<Residue> visited) throws Exception {
+		if (residue == null) return;
+		if (!visited.add(residue))
+			throw new Exception("this WURCS makes two connections between the same residues"
+					+ " (a ring through a bridge), which cannot be represented yet");
+
+		for (org.eurocarbdb.application.glycanbuilder.linkage.Linkage linkage : residue.getChildrenLinkages())
+			refuseCycles(linkage.getChildResidue(), visited);
 	}
 
 	/**

@@ -172,6 +172,11 @@ public class Glycan implements Comparable, SAXUtils.SAXWriter, MassAware {
 				root_residues.addLast(linkage.getChildResidue());
 
 			if( !current.isSaccharide() ) continue;
+			// A structure built through the API rather than parsed has no bracket, and there is
+			// nothing to attach to its children when there are none. Reaching through it regardless
+			// made every clone of such a structure throw - which took computeMass(String) with it,
+			// since that clones before it changes the isotope.
+			if( bracket==null ) continue;
 			for( Linkage linkage : bracket.getChildrenLinkages() )
 				linkage.getChildResidue().addParentOfFragment(current);
 		}
@@ -401,17 +406,16 @@ public class Glycan implements Comparable, SAXUtils.SAXWriter, MassAware {
 		//if( redend!=null && redend.isReducingEnd() && !redend.isCleavage() && !redend.getTypeName().equals(new_type.getName()) ) {
 		redend.setType(new_type);
 
-		//20211215, S.TSUCHIYA add
-		if (redend.getTypeName().equals("redEnd")) {
-			redend.getChildAt(0).setAlditol(true);
+		// Every reducing end that reduces its sugar leaves it acyclic - the alditol marker, and each
+		// of the labels, which are reductive aminations. Their masses say so: a label adds its own
+		// mass, less the water of the condensation, plus the 2H of the reduction. ResidueType
+		// records which they are, so this asks rather than naming redEnd alone - which had a 2AB
+		// writing the same WURCS as a free reducing end while weighing 120 Da more.
+		if (new_type.makesAlditol()) {
 			redend.getChildAt(0).setAnomericState('?');
 			redend.getChildAt(0).setRingSize('o');
-		}
-		if (!redend.getTypeName().equals("redEnd")) {
-			redend.getChildAt(0).setAlditol(false);
-			if (redend.getChildAt(0).getRingSize() == 'o') {
-				redend.getChildAt(0).setRingSize(redend.getChildAt(0).getType().getRingSize());
-			}
+		} else if (redend.getChildAt(0).getRingSize() == 'o') {
+			redend.getChildAt(0).setRingSize(redend.getChildAt(0).getType().getRingSize());
 		}
 
 		//20211215, S.TSUCHIYA comment out
@@ -1279,9 +1283,10 @@ public class Glycan implements Comparable, SAXUtils.SAXWriter, MassAware {
        Compute the mass-to-charge ratio given the current mass settings.
 	 */
 	public double computeMZ() {
-		double mass = computeMass();		
-		return mass_options.ION_CLOUD.and(mass_options.NEUTRAL_EXCHANGES).computeMZ(mass);
-	}   
+		double mass = computeMass();
+		return mass_options.ION_CLOUD.and(mass_options.NEUTRAL_EXCHANGES)
+				.computeMZ(mass, weighedAsAverage());
+	}
 
 	/**
        Compute the chemical formula for this structure.
@@ -1339,17 +1344,46 @@ public class Glycan implements Comparable, SAXUtils.SAXWriter, MassAware {
 	}
 
 	private double substitutionMass() {
-		if( mass_options.DERIVATIZATION.equals(MassOptions.PERMETHYLATED) ) 
-			return (MassUtils.methyl.getMass() - MassUtils.hydrogen.getMass());
-		if( mass_options.DERIVATIZATION.equals(MassOptions.PERDMETHYLATED) ) 
-			return (MassUtils.dmethyl.getMass() - MassUtils.hydrogen.getMass());
-		if( mass_options.DERIVATIZATION.equals(MassOptions.PERACETYLATED) ) 
-			return (MassUtils.acetyl.getMass() - MassUtils.hydrogen.getMass());
-		if( mass_options.DERIVATIZATION.equals(MassOptions.PERDACETYLATED) ) 
-			return (MassUtils.dacetyl.getMass() - MassUtils.hydrogen.getMass());
-		if( mass_options.DERIVATIZATION.equals(MassOptions.HEAVYPERMETHYLATION) ) 
-			return (MassUtils.heavyMethyl.getMass() - MassUtils.hydrogen.getMass());
+		if( mass_options.DERIVATIZATION.equals(MassOptions.PERMETHYLATED) )
+			return (massOf(MassUtils.methyl) - massOf(MassUtils.hydrogen));
+		if( mass_options.DERIVATIZATION.equals(MassOptions.PERDMETHYLATED) )
+			return (massOf(MassUtils.dmethyl) - massOf(MassUtils.hydrogen));
+		if( mass_options.DERIVATIZATION.equals(MassOptions.PERACETYLATED) )
+			return (massOf(MassUtils.acetyl) - massOf(MassUtils.hydrogen));
+		if( mass_options.DERIVATIZATION.equals(MassOptions.PERDACETYLATED) )
+			return (massOf(MassUtils.dacetyl) - massOf(MassUtils.hydrogen));
+		if( mass_options.DERIVATIZATION.equals(MassOptions.HEAVYPERMETHYLATION) )
+			return (massOf(MassUtils.heavyMethyl) - massOf(MassUtils.hydrogen));
 		return 0.;
+	}
+
+	/**
+	 * Whether this structure is being weighed as an average rather than monoisotopically.
+	 *
+	 * <p>The choice is offered in the Mass options dialog and was read by nothing: every mass came
+	 * from the monoisotopic figure, so selecting AVG changed the dialog and not the answer (#127).
+	 * A residue's average mass had been carried alongside its monoisotopic one all along and never
+	 * asked for.
+	 *
+	 * @return Returns whether {@code ISOTOPE} says average.
+	 */
+	private boolean weighedAsAverage() {
+		return mass_options != null && mass_options.isAverage();
+	}
+
+	/** @return Returns a residue's mass, of the kind this structure is being weighed in. */
+	private double massOf(ResidueType type) {
+		return weighedAsAverage() ? type.getResidueMassAvg() : type.getMass();
+	}
+
+	/** @return Returns a molecule's mass, of the kind this structure is being weighed in. */
+	private double massOf(Molecule molecule) {
+		return weighedAsAverage() ? molecule.getAverageMass() : molecule.getMass();
+	}
+
+	/** @return Returns an atom's mass, of the kind this structure is being weighed in. */
+	private double massOf(org.eurocarbdb.application.glycanbuilder.massutil.Atom atom) {
+		return weighedAsAverage() ? atom.getAverageMass() : atom.getMass();
 	}
 
 	private Molecule substitutionMolecule() throws Exception {
@@ -1374,11 +1408,11 @@ public class Glycan implements Comparable, SAXUtils.SAXWriter, MassAware {
 		int no_bonds = node.getNoBonds();
 
 		// add mass of the saccharide    
-		double mass =  type.getMass();
+		double mass =  massOf(type);
 
 		// modify for alditol
 		if( node.isReducingEnd() && node.getType().makesAlditol() )
-			mass += 2*MassUtils.hydrogen.getMass();
+			mass += 2*massOf(MassUtils.hydrogen);
 
 		if( node.isBracket() ) {
 			int no_linked_labiles = Math.min(countLabilePositions(),countDetachedLabiles());
@@ -1395,14 +1429,14 @@ public class Glycan implements Comparable, SAXUtils.SAXWriter, MassAware {
 		else {
 			// add groups
 			if( isDropped(type) )
-				mass -= (type.getMass() - MassUtils.water.getMass() - substitutionMass());
+				mass -= (massOf(type) - massOf(MassUtils.water) - substitutionMass());
 			else
 				mass += (noSubstitutions(type)-no_bonds)*substitutionMass();
 		}    
 
 		// add children
 		for( Linkage l : node.getChildrenLinkages() ) {
-			mass -= MassUtils.water.getMass()*l.getNoBonds(); // remove a water molecule for each bond                
+			mass -= massOf(MassUtils.water)*l.getNoBonds(); // remove a water molecule for each bond                
 			mass += computeMass(l.getChildResidue());
 		}
 
@@ -1428,6 +1462,14 @@ public class Glycan implements Comparable, SAXUtils.SAXWriter, MassAware {
 	
 	private double computeMass(Residue node, double multipler) {
 		if( node==null || node.getTypeName().equals("Sugar"))
+			return 0.;
+
+		// The "no glycosidic linkages" marker is a label the WURCS importer hangs off a
+		// composition to say that no linkages are known - not a residue of the glycan. It weighs
+		// nothing, but left to fall through it collects a derivatization adjustment for the one
+		// bond it has to the bracket, which is why every derivatized composition read one
+		// methyl/acetyl group light. The renderers skip it by the same test.
+		if( node.isCompositionMarker() )
 			return 0.;
 
 		// a composition has no distinguished reducing end of its own: the root
@@ -1460,12 +1502,12 @@ public class Glycan implements Comparable, SAXUtils.SAXWriter, MassAware {
 		double mass=0.;
 		
 		if(!node.isRepetition() || checkCompositionResidue(node)){
-			mass =  type.getMass();
+			mass =  massOf(type);
 		}
 		
 		// modify for alditol
 		if( node.isReducingEnd() && node.getType().makesAlditol() )
-			mass += 2*MassUtils.hydrogen.getMass();
+			mass += 2*massOf(MassUtils.hydrogen);
 
 		if( node.isBracket() ) {
 			// a composition's bracket is just a structural container for a flat,
@@ -1489,9 +1531,33 @@ public class Glycan implements Comparable, SAXUtils.SAXWriter, MassAware {
 				// data model contributes no mass of its own for a composition
 				// (see the top of this method), whatever its actual residue
 				// type happens to be, so there is nothing else to account for.
-				int no_members = node.getChildrenLinkages().size();
+				// The WURCS importer hangs a synthetic "no glycosidic linkages" marker off the
+				// bracket alongside the real members (see WURCSSequence2ToGlycan). It weighs
+				// nothing itself, but counting it as a member subtracts one water too many - so
+				// every composition imported from WURCS came out 18.0106 light, at any size. The
+				// renderers already skip it by the same test; the mass had not been told about it.
+				int no_members = 0;
+				for( int i=0; i<node.getNoChildren(); i++ )
+					if( !node.getChildAt(i).isCompositionMarker() )
+						no_members++;
 				if( no_members>0 )
-					mass -= (no_members-1)*MassUtils.water.getMass();
+					mass -= (no_members-1)*massOf(MassUtils.water);
+
+				// A glycosidic bond also consumes a hydroxyl that would otherwise carry a
+				// derivatization group, and the members - each attached to the bracket rather than
+				// to one another - are derivatized as though they were free. Underivatized this
+				// costs nothing, which is why it went unseen; permethylated, a composition read
+				// higher than the same glycan written with its linkages, and permethylation is the
+				// ordinary preparation in MS glycomics.
+				//
+				// Measured against the linked structure of the same residues, for N = 2..7 and for
+				// branched as well as straight chains (mass does not depend on topology): the
+				// excess is N-2 groups, one fewer than the N-1 bonds whose water is taken off
+				// above. The remaining one is already accounted for in the walk - the root of a
+				// composition returns before it can add its own adjustment (see the top of this
+				// method) - so taking off N-1 here would overshoot by exactly that one.
+				if( no_members>1 )
+					mass -= (no_members-2)*substitutionMass();
 			}
 		}
 		else if( node.isCleavage() && !node.isRingFragment() ) {
@@ -1506,7 +1572,7 @@ public class Glycan implements Comparable, SAXUtils.SAXWriter, MassAware {
 			if(node.isRepetition()==false){
 				// add groups
 				if( isDropped(type) )
-					mass -= (type.getMass() - MassUtils.water.getMass() - substitutionMass());
+					mass -= (massOf(type) - massOf(MassUtils.water) - substitutionMass());
 				else
 					mass += ((noSubstitutions(type)-no_bonds)*substitutionMass());
 			}
@@ -1520,7 +1586,7 @@ public class Glycan implements Comparable, SAXUtils.SAXWriter, MassAware {
 				int noBonds=startRepResidue.getLinkageAt(0).getNoBonds(); //B
 				int repetitions=startRepResidue.getEndRepitionResidue().getMaxRepetitions(); //n
 			
-				mass+=(repetitions-1)*(noBonds-1)*MassUtils.water.getMass();
+				mass+=(repetitions-1)*(noBonds-1)*massOf(MassUtils.water);
 				mass+=(repetitions-2)*(noBonds-1)*substitutionMass();
 			}
 		}
@@ -1535,13 +1601,13 @@ public class Glycan implements Comparable, SAXUtils.SAXWriter, MassAware {
 				}
 			}
 			if(isDehydrationBond(l)) {
-				mass -= MassUtils.water.getMass()*l.getNoBonds()*multipler; // remove a water molecule for each bond
+				mass -= massOf(MassUtils.water)*l.getNoBonds()*multipler; // remove a water molecule for each bond
 			}
 			
 			if(!l.getChildResidue().getType().getComposition().contains("O")) { 
 				if(l.getParentLinkageType().equals(LinkageType.H_AT_OH) || l.getParentLinkageType().equals(LinkageType.H_LOSE)) {
-					mass += MassUtils.water.getMass()*l.getNoBonds()*multipler;
-					mass -= MassUtils.hydrogen.getMass()*l.getNoBonds()*multipler*2;
+					mass += massOf(MassUtils.water)*l.getNoBonds()*multipler;
+					mass -= massOf(MassUtils.hydrogen)*l.getNoBonds()*multipler*2;
 				}
 			}
 			mass += computeMass(l.getChildResidue(),multipler);
@@ -2045,7 +2111,7 @@ public class Glycan implements Comparable, SAXUtils.SAXWriter, MassAware {
 			return new GlycoCTParser(false).fromGlycoCT(str,new MassOptions());
 		}
 		catch(Exception e) {
-			e.printStackTrace();
+			LogUtils.report(e);
 			LogUtils.report(e);
 			return null;
 		}
@@ -2076,7 +2142,7 @@ public class Glycan implements Comparable, SAXUtils.SAXWriter, MassAware {
 			return new GlycoCTCondensedParser(false).fromGlycoCTCondensed(str,new MassOptions());
 		}
 		catch(Exception e) {
-			e.printStackTrace();
+			LogUtils.report(e);
 			LogUtils.report(e);
 			return null;
 		}
@@ -2095,7 +2161,7 @@ public class Glycan implements Comparable, SAXUtils.SAXWriter, MassAware {
 			return new GlycoCTCondensedParser(tolerate_unknown).fromGlycoCTCondensed(str,new MassOptions());
 		}
 		catch(Exception e) {
-			e.printStackTrace();
+			LogUtils.report(e);
 			LogUtils.report(e);
 			return null;
 		}
