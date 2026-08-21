@@ -162,37 +162,36 @@ class SVGGlycanRenderer extends GlycanRendererAWT {
 		    g.setAttribute("data.residueRingSize",""+node.getRingSize());
 		    g.setAttribute("data.residueChirality",""+node.getChirality());
 		    g.setAttribute("data.residueAnomericState",""+node.getAnomericState());
-                    if (node.isAlditol()) {
-		      g.setAttribute("data.residueIsAlditol","true");
-                    }
-                    if (residueUndetQuantity.containsKey(node)) {
-                      g.setAttribute("data.residueUndeterminedMultiplicity",residueUndetQuantity.get(node));
-                      g.setAttribute("data.residueUndeterminedParentPos",residueUndetParentPos.get(node));
-                      g.setAttribute("data.residueUndeterminedChildPos",residueUndetChildPos.get(node));
-                    }
-                    if (node.isFreeReducingEnd() || node.isReducingEnd() || node == root) {
-		      g.setAttribute("data.residueIsReducingEnd","true");    
-                    }
+            if (node.isAlditol()) {
+		      	g.setAttribute("data.residueIsAlditol","true");
+            }
+            if (residueUndetQuantity.containsKey(node)) {
+                g.setAttribute("data.residueUndeterminedMultiplicity",residueUndetQuantity.get(node));
+                g.setAttribute("data.residueUndeterminedParentPos",residueUndetParentPos.get(node));
+                g.setAttribute("data.residueUndeterminedChildPos",residueUndetChildPos.get(node));
+            }
+            if (node.isFreeReducingEnd() || node.isReducingEnd() || node == root) {
+		        g.setAttribute("data.residueIsReducingEnd","true");    
+            }
 		} else if (node.isSubstituent()) {
 		    g.setAttribute("data.type","Substituent");    
 		    g.setAttribute("data.residueName",node.getResidueName());
-                    if (residueUndetQuantity.containsKey(node)) {
-		      g.setAttribute("data.residueIndex",Integer.toString(getNodeID(node)));
-                      g.setAttribute("data.residueUndeterminedMultiplicity",residueUndetQuantity.get(node));
-                      g.setAttribute("data.residueUndeterminedParentPos",residueUndetParentPos.get(node));
-                      g.setAttribute("data.residueUndeterminedChildPos",residueUndetChildPos.get(node));
-                    } else {
-                      Linkage acceptorLinkage = node.getParentLinkage();
-                      g.setAttribute("data.parentResidueIndex",Integer.toString(getNodeID(acceptorLinkage.getParentResidue())));
-                      g.setAttribute("data.parentPositions",acceptorLinkage.getParentPositionsString());
-                      g.setAttribute("data.childPositions",acceptorLinkage.getChildPositionsString());
-                    }
-                }
+            if (residueUndetQuantity.containsKey(node)) {
+		        g.setAttribute("data.residueIndex",Integer.toString(getNodeID(node)));
+                g.setAttribute("data.residueUndeterminedMultiplicity",residueUndetQuantity.get(node));
+                g.setAttribute("data.residueUndeterminedParentPos",residueUndetParentPos.get(node));
+                g.setAttribute("data.residueUndeterminedChildPos",residueUndetChildPos.get(node));
+            } else {
+                Linkage acceptorLinkage = node.getParentLinkage();
+                g.setAttribute("data.parentResidueIndex",Integer.toString(getNodeID(acceptorLinkage.getParentResidue())));
+                g.setAttribute("data.parentPositions",acceptorLinkage.getParentPositionsString());
+                g.setAttribute("data.childPositions",acceptorLinkage.getChildPositionsString());
+            }
+        }
 
 		boolean selected = selected_residues.contains(node);
 		boolean active = (active_residues == null || active_residues.contains(node));
 		if (paintsAglycon || !node.isReducingEnd()) {
-			g2d.addGroup("r",theStructure,node);
 			theResidueRenderer.paint(new DefaultPaintable(g2d), node, selected, active, posManager.isOnBorder(node), parent_bbox, node_bbox,
 					support_bbox,posManager.getOrientation(node));
 		}

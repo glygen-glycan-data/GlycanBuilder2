@@ -20,6 +20,7 @@ import java.lang.StringBuilder;
 import java.util.*;
 
 import org.glycoinfo.application.glycanbuilder.converterWURCS2.WURCS2Parser;
+import org.glycoinfo.application.glycanbuilder.util.exchange.WURCSToGlycanException;
 import org.glycoinfo.GlycanFormatconverter.Glycan.GlycanException;
 import org.glycoinfo.WURCSFramework.util.oldUtil.ConverterExchangeException;
 import org.glycoinfo.WURCSFramework.util.array.WURCSFormatException;
@@ -333,15 +334,15 @@ public class GlycanImageCmdline
 					if (glycanstr.startsWith("WURCS")) {
 						try {
 							glycan = wparser.readGlycan(glycanstr, mo);
-						} catch (java.lang.Error ex) {
-							// ex.printStackTrace();
-							throw new GlycanException("readGlycan(WURCS): " + ex.getClass().getSimpleName());
-						} catch (NullPointerException ex) {
-							// ex.printStackTrace();
-							throw new GlycanException("readGlycan(WURCS): " + ex.getClass().getSimpleName());
-						} catch (Exception ex) {
+						} catch (WURCSToGlycanException ex) {
 							// ex.printStackTrace();
 							throw new GlycanException("readGlycan(WURCS): " + ex.getMessage());
+						} catch (java.lang.Error ex) {
+							ex.printStackTrace();
+							throw new GlycanException("readGlycan(WURCS): " + ex.getClass().getSimpleName());
+						} catch (Exception ex) {
+							ex.printStackTrace();
+							throw new GlycanException("readGlycan(WURCS): " + ex.getClass().getSimpleName());
 						}
 					} else if (glycanstr.startsWith("RES")) {
 						try {
