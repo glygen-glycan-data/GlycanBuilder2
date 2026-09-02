@@ -125,8 +125,8 @@ public abstract class AbstractResidueRenderer implements ResidueRenderer{
     		int font_size = theGraphicOptions.NODE_FONT_SIZE;
     		int x_size = textBounds(text,theGraphicOptions.NODE_FONT_FACE,font_size).width;
 
-    		if( x_size > node_size  )         
-    			dim = new Dimension(x_size,node_size);        
+			if( x_size > node_size  )
+    			dim = new Dimension(x_size + node_size/2,node_size);
     		else
     			dim = new Dimension(node_size,node_size);    
 
