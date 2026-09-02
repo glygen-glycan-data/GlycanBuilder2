@@ -58,3 +58,4 @@ settings.xml
 tmp/
 *.wcs.*
 *.gct.*
+.devcontainer/
