@@ -68,7 +68,7 @@ public class TrivialNameConverter {
         try {
             inConv.makeTrivialName(_node);
         } catch (GlycanException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Failed to convert to trival name");
         }
         this.trivialName = inConv.getCoreCode();
     }
@@ -78,7 +78,7 @@ public class TrivialNameConverter {
             ExtendedConverter extConv = new ExtendedConverter();
             this.fullName = extConv.start(_node);
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException("Failed to convert to IUPAC notation");
         }
     }
 
