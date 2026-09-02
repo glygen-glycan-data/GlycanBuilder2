@@ -54,3 +54,7 @@ nbdist/
 .m2/
 .m2/settings.xml
 settings.xml
+
+tmp/
+*.wcs.*
+*.gct.*
