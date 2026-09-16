@@ -44,7 +44,16 @@ public class WURCS2Parser implements GlycanParser{
 		str = str.trim();		
 		if(str.contains("\t")) str = str.substring(str.indexOf("\t") + 1);
 		
-		WURCSFactory wf = new WURCSFactory(str);
+		WURCSFactory wf;
+		try {
+			wf = new WURCSFactory(str);
+		} catch (Exception e) {
+			if (e.getMessage() != null) {
+				throw new WURCSToGlycanException(e.getMessage(), e);
+			} else {
+				throw new WURCSToGlycanException("Could not parse", e);
+			}
+		}
 		Glycan glycan;
 		try {
 			WURCSSequence2ToGlycan seq22glycan = new WURCSSequence2ToGlycan();
