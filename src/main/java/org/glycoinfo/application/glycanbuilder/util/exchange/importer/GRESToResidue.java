@@ -57,9 +57,9 @@ public class GRESToResidue {
 		ResidueType newType = ResidueDictionary.findResidueType(trivialName);
 		Residue residue = new Residue(newType);
 
-		// generate monosaccharide legend
 		if(NonSymbolicResidueDictionary.hasResidueType(trivialName)) {
-			residue.getType().changeDescription(trinConv.getIUPACNotation());
+			String legend = trinConv.getIUPACNotation();
+			if(legend != null) residue.getType().changeDescription(legend);
 		}
 
 		if(!_gres.getMS().getString().contains("<Q>")  && residue.getTypeName().equals("Sugar"))

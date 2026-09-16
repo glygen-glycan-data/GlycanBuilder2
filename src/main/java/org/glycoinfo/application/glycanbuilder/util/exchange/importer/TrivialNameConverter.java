@@ -32,6 +32,7 @@ public class TrivialNameConverter {
 
     public String getIUPACNotation () {
         String ret = this.fullName;
+        if (ret == null) return null;
 
         ret = ret.replaceAll(AnomericStateDescriptor.ALPHA.getIUPACAnomericState(), "\u03B1");
         ret = ret.replaceAll(AnomericStateDescriptor.BETA.getIUPACAnomericState(), "\u03B2");
@@ -77,8 +78,7 @@ public class TrivialNameConverter {
         try {
             ExtendedConverter extConv = new ExtendedConverter();
             this.fullName = extConv.start(_node);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to convert to IUPAC notation");
+        } catch (Exception ignored) {
         }
     }
 
