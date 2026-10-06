@@ -14,9 +14,11 @@ import java.awt.Dimension;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.LinkedList;
@@ -509,6 +511,19 @@ public abstract class AbstractGlycanRenderer implements GlycanRenderer{
 		BookingManager bookManager = new BookingManager(posManager.getAvailablePositions(current, orientation));
 
 		// add children to the booking manager
+
+		// Pre-scan: check whether every child link has an uncertain parent position,
+		// and build an ordered list of children for index-based Fuc placement below.
+		boolean allUncertainPositions = true;
+		List<Residue> orderedChildren = new ArrayList<>();
+		for (Iterator<Linkage> pre = current.iterator(); pre.hasNext();) {
+			Linkage preLink = pre.next();
+			Residue preChild = preLink.getChildResidue();
+			if (preChild.getType().getDescription().equals("no glycosidic linkages")) continue;
+			if (!preLink.hasUncertainParentPositions()) allUncertainPositions = false;
+			orderedChildren.add(preChild);
+		}
+
 		for (Iterator<Linkage> i = current.iterator(); i.hasNext();) {
 			Linkage link = i.next();
 			Residue child = link.getChildResidue();
@@ -522,6 +537,24 @@ public abstract class AbstractGlycanRenderer implements GlycanRenderer{
 					|| (!current.isSaccharide() && !current.isBracket())
 					|| !bookManager.isAvailable(placement))
 				placement = theResiduePlacementDictionary.getPlacement(current, link, matching_child, sticky);
+
+			// When all sibling linkages have unknown positions and this Fuc gets the
+			// ambiguous two-position fallback, resolve it by insertion order:
+			// Fuc before any non-Fuc sibling → -90; Fuc after all non-Fuc siblings → +90.
+			if (allUncertainPositions && matching_child.getTypeName().contains("Fuc") && placement.getPositions().length > 1) {
+				int idx = orderedChildren.indexOf(child);
+				boolean nonFucFollows = false;
+				for (int j = idx + 1; j < orderedChildren.size(); j++) {
+					Residue after = orderedChildren.get(j);
+					Residue afterMatching = (after.getCleavedResidue() != null) ? after.getCleavedResidue() : after;
+					if (!afterMatching.getTypeName().contains("Fuc")) {
+						nonFucFollows = true;
+						break;
+					}
+				}
+				int angle = nonFucFollows ? -90 : 90;
+				placement = new ResiduePlacement(new ResAngle(angle), placement.isOnBorder(), placement.isSticky());
+			}
 
 			// set placement
 			bookManager.add(child, placement);
